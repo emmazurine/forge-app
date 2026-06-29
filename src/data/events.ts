@@ -1,0 +1,122 @@
+import { ForgeEvent, EventSponsor } from '../types/event';
+
+const DR_MITCHELL: EventSponsor = {
+  name: 'Dr. Sarah Mitchell',
+  role: 'CS Department Chair, GMU',
+  email: 'smitchell@gmu.edu',
+};
+
+const PROF_LEE: EventSponsor = {
+  name: 'Prof. James Lee',
+  role: 'Engineering Faculty, GMU',
+  email: 'jlee@gmu.edu',
+};
+
+const MS_OKAFOR: EventSponsor = {
+  name: 'Ms. Adaeze Okafor',
+  role: 'Student Affairs Advisor, GMU',
+  email: 'aokafor@gmu.edu',
+};
+
+export const EVENTS: ForgeEvent[] = [
+  {
+    id: 'e1',
+    title: 'All-Night Study Lock-In',
+    description:
+      'Pull an all-nighter the right way — with other people who actually want to get stuff done. We\'re booking the entire basement of Fenwick Library from midnight to 7 AM. Bring your laptop, your project, and whatever snacks fuel you. Ambassadors will be there the whole time. Whiteboards, outlets, fast wifi, vibes.',
+    type: 'lock-in',
+    hostId: '1',
+    hostName: 'Alex Chen',
+    hostInitials: 'AC',
+    hostAvatarColor: '#6366F1',
+    location: 'Fenwick Library — Basement, GMU Fairfax Campus',
+    date: '2026-07-11',
+    startTime: '12:00 AM',
+    endTime: '7:00 AM',
+    capacity: 40,
+    rsvpIds: ['1', '2', '3', '6', '7', '8', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16'],
+    tags: ['Study', 'All-Nighter', 'Productivity', 'GMU'],
+    isPast: false,
+    sponsors: [DR_MITCHELL, MS_OKAFOR],
+  },
+  {
+    id: 'e2',
+    title: 'NoVA AI Builders Hackathon',
+    description:
+      'A 24-hour hackathon for students serious about AI. Build something real — not a demo, an actual project. We\'ll have mentors from local startups and research labs. Teams of 2–4. Projects judged on ambition, technical depth, and whether it\'s actually useful. Winners get intro\'d to DC-area VCs.',
+    type: 'hackathon',
+    hostId: '6',
+    hostName: 'Priya Anand',
+    hostInitials: 'PA',
+    hostAvatarColor: '#14B8A6',
+    location: 'Innovation Hall, GMU Fairfax Campus',
+    date: '2026-07-19',
+    startTime: '10:00 AM',
+    endTime: '10:00 AM',
+    capacity: 80,
+    rsvpIds: ['1', '2', '3', '6', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24', 's25', 's26', 's27', 's28', 's29', 's30', 's31', 's32', 's33', 's34', 's35', 's36', 's37', 's38', 's39', 's40', 's41', 's42'],
+    tags: ['AI', 'Hackathon', 'Teams', 'Prizes'],
+    isPast: false,
+    sponsors: [PROF_LEE, DR_MITCHELL],
+  },
+  {
+    id: 'e3',
+    title: 'Research Paper Reading Club',
+    description:
+      'We pick one paper, everyone reads it beforehand, then we spend 90 minutes actually understanding it — not just nodding along. This month: "Attention Is All You Need" (yes, seriously, most people haven\'t fully read it). Great for anyone trying to break into research or just wanting to read more rigorously.',
+    type: 'study-group',
+    hostId: '1',
+    hostName: 'Alex Chen',
+    hostInitials: 'AC',
+    hostAvatarColor: '#6366F1',
+    location: 'Johnson Center, Room 240, GMU Fairfax Campus',
+    date: '2026-07-08',
+    startTime: '6:00 PM',
+    endTime: '7:30 PM',
+    capacity: 20,
+    rsvpIds: ['1', '3', '6', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11'],
+    tags: ['Research', 'AI/ML', 'Papers', 'Academic'],
+    isPast: false,
+    sponsors: [DR_MITCHELL],
+  },
+  {
+    id: 'e4',
+    title: 'Pitch & Polish Workshop',
+    description:
+      'Bring your startup idea, research project, or side project — you\'ll pitch it in 3 minutes and get live feedback from other students and two local founders. No decks required, no judgment if it\'s rough. The goal is to get comfortable talking about your work and hear what lands and what doesn\'t.',
+    type: 'workshop',
+    hostId: '6',
+    hostName: 'Priya Anand',
+    hostInitials: 'PA',
+    hostAvatarColor: '#14B8A6',
+    location: 'Merten Hall, Room 1202, GMU Fairfax Campus',
+    date: '2026-07-15',
+    startTime: '5:30 PM',
+    endTime: '8:00 PM',
+    capacity: 30,
+    rsvpIds: ['1', '2', '6', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13'],
+    tags: ['Startups', 'Pitching', 'Feedback', 'Founders'],
+    isPast: false,
+    sponsors: [PROF_LEE],
+  },
+  {
+    id: 'e5',
+    title: 'End of Semester Rooftop Social',
+    description:
+      'Finals are over. Come meet people you\'ve only talked to on here IRL. Hosted on the rooftop of the Mason Enterprise Center. No agenda, just good people.',
+    type: 'social',
+    hostId: '1',
+    hostName: 'Alex Chen',
+    hostInitials: 'AC',
+    hostAvatarColor: '#6366F1',
+    location: 'Mason Enterprise Center Rooftop, GMU',
+    date: '2026-05-16',
+    startTime: '7:00 PM',
+    endTime: '11:00 PM',
+    capacity: 60,
+    rsvpIds: ['1', '2', '3', '6', ...Array.from({ length: 54 }, (_, i) => `s${i + 1}`)],
+    tags: ['Social', 'Networking', 'End of Semester'],
+    isPast: true,
+    sponsors: [MS_OKAFOR],
+  },
+];
