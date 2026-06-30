@@ -24,6 +24,8 @@ export interface Spot {
   rating: number;
   reviewCount: number;
   accentColor: string;
+  openNow?: boolean;
+  googlePlaceId?: string;
 }
 
 export type SpotFilter = 'all' | 'quiet' | 'wifi' | 'outlets' | 'group' | 'open' | 'saved';

@@ -64,6 +64,7 @@ interface MessagesStore {
   ) => Conversation;
   sendMessage: (conversationId: string, text: string) => void;
   sendPortfolio: (conversationId: string, snapshot: PortfolioSnapshot) => void;
+  markRead: (conversationId: string) => void;
 }
 
 export const useMessagesStore = create<MessagesStore>()(
@@ -103,6 +104,14 @@ export const useMessagesStore = create<MessagesStore>()(
                 : c
             )
             .sort((a, b) => b.updatedAt - a.updatedAt),
+        }));
+      },
+
+      markRead: (conversationId) => {
+        set((s) => ({
+          conversations: s.conversations.map((c) =>
+            c.id === conversationId ? { ...c, readAt: Date.now() } : c
+          ),
         }));
       },
 

@@ -7,6 +7,11 @@ export type ExperienceType =
   | 'project'
   | 'other';
 
+export interface ProofLink {
+  label: string;
+  url: string;
+}
+
 export interface Experience {
   id: string;
   title: string;
@@ -16,9 +21,19 @@ export interface Experience {
   outcome?: string;
   lessonsLearned?: string;
   skills: string[];
-  startDate: string;   // e.g. "Sep 2024"
-  endDate?: string;    // e.g. "Nov 2024" — undefined means present
+  startDate: string;
+  endDate?: string;
   link?: string;
+  proofLinks?: ProofLink[];
+}
+
+export type ProjectUpdateTag = 'progress' | 'stuck' | 'milestone' | 'shipped';
+
+export interface ProjectUpdate {
+  id: string;
+  text: string;
+  timestamp: number;
+  tag: ProjectUpdateTag;
 }
 
 export interface PortfolioSnapshot {

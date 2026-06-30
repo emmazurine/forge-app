@@ -35,6 +35,7 @@ export function useAllNotifications(): AppNotification[] {
     for (const conv of conversations) {
       const last = conv.messages[conv.messages.length - 1];
       if (!last || last.senderId === 'me') continue;
+      if (last.sentAt <= (conv.readAt ?? 0)) continue;
       all.push({
         id: `msg-${conv.id}`,
         type: 'message',

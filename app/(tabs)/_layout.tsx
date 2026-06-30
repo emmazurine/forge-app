@@ -15,7 +15,7 @@ export default function TabLayout() {
   const unreadCount = useMessagesStore((s) =>
     s.conversations.filter((c) => {
       const last = c.messages[c.messages.length - 1];
-      return last && last.senderId !== 'me';
+      return last && last.senderId !== 'me' && last.sentAt > (c.readAt ?? 0);
     }).length
   );
 

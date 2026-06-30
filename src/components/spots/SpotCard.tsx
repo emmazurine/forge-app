@@ -44,7 +44,7 @@ export function SpotCard({ spot }: SpotCardProps) {
   const noise = NOISE_CONFIG[spot.noiseLevel];
   const wifi = WIFI_CONFIG[spot.wifiQuality];
   const outlet = OUTLET_CONFIG[spot.outlets];
-  const openNow = isSpotOpenNow(spot.hours);
+  const openNow = spot.openNow !== undefined ? spot.openNow : isSpotOpenNow(spot.hours);
   const allCheckins = useCheckinsStore((s) => s.checkins);
   const now = Date.now();
   const liveCount = allCheckins.filter((c) => c.spotId === spot.id && c.expiresAt > now).length;

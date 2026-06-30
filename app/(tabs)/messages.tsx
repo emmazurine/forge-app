@@ -83,7 +83,7 @@ export default function MessagesScreen() {
 function ConvoRow({ convo, onPress }: { convo: Conversation; onPress: () => void }) {
   const Colors = useColors();
   const last = convo.messages[convo.messages.length - 1];
-  const isUnread = last?.senderId !== 'me';
+  const isUnread = last?.senderId !== 'me' && last.sentAt > (convo.readAt ?? 0);
   const preview = !last
     ? 'No messages yet'
     : last.type === 'portfolio'

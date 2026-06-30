@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '../../src/components/ui/Logo';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -31,7 +32,7 @@ import { useProfileStore } from '../../src/store/profile';
 import { useThemeStore } from '../../src/store/theme';
 import { ColorPalette } from '../../src/constants/themes';
 import { NotificationBell } from '../../src/components/ui/NotificationBell';
-import { Experience } from '../../src/types/portfolio';
+import { Experience, ProjectUpdate, ProjectUpdateTag } from '../../src/types/portfolio';
 import { Student } from '../../src/types/user';
 import { STUDENTS } from '../../src/data/students';
 
@@ -464,6 +465,77 @@ function createStyles(C: ColorPalette) {
       textTransform: 'uppercase',
       letterSpacing: 0.8,
     },
+    // Proof links
+    proofLinksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
+    proofLinkBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: C.accentSoft, borderRadius: Radius.full,
+      paddingHorizontal: Spacing.md, paddingVertical: 4,
+      borderWidth: 1, borderColor: C.accent + '33',
+    },
+    proofLinkLabel: { fontSize: FontSize.xs, color: C.accent, fontWeight: FontWeight.semibold },
+    // Project stage
+    stageBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    stageBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: Spacing.md, paddingVertical: 3,
+      borderRadius: Radius.full, borderWidth: 1,
+    },
+    stageBadgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+    stageChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+    stageChip: {
+      paddingHorizontal: Spacing.md, paddingVertical: 5,
+      borderRadius: Radius.full, backgroundColor: C.surface,
+      borderWidth: 1, borderColor: C.border,
+    },
+    stageChipText: { fontSize: FontSize.xs, color: C.textSecondary, fontWeight: FontWeight.medium },
+    // Update timeline
+    updateTimeline: { gap: 0, marginTop: Spacing.md },
+    updateRow: { flexDirection: 'row', gap: Spacing.md },
+    updateRail: { width: 20, alignItems: 'center' },
+    updateDot: { width: 10, height: 10, borderRadius: 5, marginTop: 3 },
+    updateConnector: { width: 1.5, flex: 1, backgroundColor: C.borderSubtle, marginTop: 3 },
+    updateContent: { flex: 1, paddingBottom: Spacing.lg },
+    updateHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: 4 },
+    updateTagChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      paddingHorizontal: Spacing.sm, paddingVertical: 2,
+      borderRadius: Radius.full, borderWidth: 1,
+    },
+    updateTagText: { fontSize: FontSize.xs - 1, fontWeight: FontWeight.semibold },
+    updateTimestamp: { fontSize: FontSize.xs - 1, color: C.textMuted, marginLeft: 'auto' },
+    updateText: { fontSize: FontSize.sm, color: C.textSecondary, lineHeight: 20 },
+    // Post update form
+    postUpdateWrap: {
+      marginTop: Spacing.md, backgroundColor: C.surface,
+      borderRadius: Radius.lg, borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    },
+    postUpdateTagRow: { flexDirection: 'row', gap: Spacing.xs, padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: C.borderSubtle },
+    postUpdateTagBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: Spacing.md, paddingVertical: 5,
+      borderRadius: Radius.full, borderWidth: 1, borderColor: C.border,
+      backgroundColor: C.surfaceElevated,
+    },
+    postUpdateTagBtnText: { fontSize: FontSize.xs, color: C.textSecondary, fontWeight: FontWeight.medium },
+    postUpdateInputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm, padding: Spacing.md },
+    postUpdateInput: {
+      flex: 1, color: C.text, fontSize: FontSize.sm,
+      paddingVertical: Spacing.xs, maxHeight: 90,
+    },
+    postUpdateSubmitBtn: {
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
+    },
+    postUpdateSubmitDisabled: { backgroundColor: C.border },
+    addUpdateBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+      alignSelf: 'flex-start', marginTop: Spacing.sm,
+      paddingHorizontal: Spacing.md, paddingVertical: 5,
+      borderRadius: Radius.full, backgroundColor: C.surface,
+      borderWidth: 1, borderColor: C.border,
+    },
+    addUpdateText: { fontSize: FontSize.xs, color: C.textSecondary, fontWeight: FontWeight.medium },
   });
 }
 
@@ -489,6 +561,11 @@ export default function ProfileScreen() {
 
   const router = useRouter();
   const ambassadorStatus = useAmbassadorStore((s) => s.status);
+
+  const { projectUpdates, addProjectUpdate } = useProfileStore();
+  const [updateInput, setUpdateInput] = useState('');
+  const [updateTag, setUpdateTag] = useState<ProjectUpdateTag>('progress');
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
 
   const [profile, setProfile] = useState<Student>(buildInitialProfile);
   const committed = useRef<Student>(profile);
@@ -696,14 +773,95 @@ export default function ProfileScreen() {
                     textAlignVertical="top"
                   />
                 </View>
+                <View style={styles.fieldGap}>
+                  <Text style={styles.fieldLabel}>Stage</Text>
+                  <View style={styles.stageChips}>
+                    {(['Ideating', 'Building', 'Testing', 'Launching', 'Paused'] as const).map((s) => {
+                      const active = (profile.projectStage ?? '') === s;
+                      return (
+                        <Pressable
+                          key={s}
+                          style={[styles.stageChip, active && { backgroundColor: Colors.accentSoft, borderColor: Colors.accent + '44' }]}
+                          onPress={() => setProfile((p) => ({ ...p, projectStage: active ? undefined : s }))}
+                        >
+                          <Text style={[styles.stageChipText, active && { color: Colors.accent, fontWeight: FontWeight.semibold }]}>{s}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
             ) : profile.currentProject ? (
               <View style={styles.projectCard}>
                 <View style={styles.projectHeader}>
                   <Text style={styles.projectName}>{profile.currentProject}</Text>
-                  <View style={styles.activeBadge}><Text style={styles.activeText}>Active</Text></View>
+                  {profile.projectStage ? (
+                    <ProjectStageBadge stage={profile.projectStage} Colors={Colors} styles={styles} />
+                  ) : (
+                    <View style={styles.activeBadge}><Text style={styles.activeText}>Active</Text></View>
+                  )}
                 </View>
                 {profile.projectDescription && <Text style={styles.projectDesc}>{profile.projectDescription}</Text>}
+
+                {/* Update timeline */}
+                {projectUpdates.length > 0 && (
+                  <View style={styles.updateTimeline}>
+                    {projectUpdates.map((upd, idx) => (
+                      <UpdateRow
+                        key={upd.id}
+                        update={upd}
+                        isLast={idx === projectUpdates.length - 1}
+                        styles={styles}
+                        Colors={Colors}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {/* Post update */}
+                {showUpdateForm ? (
+                  <View style={styles.postUpdateWrap}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.postUpdateTagRow}>
+                      {UPDATE_TAGS.map((t) => (
+                        <Pressable
+                          key={t.tag}
+                          style={[styles.postUpdateTagBtn, updateTag === t.tag && { backgroundColor: t.softColor, borderColor: t.color + '55' }]}
+                          onPress={() => setUpdateTag(t.tag)}
+                        >
+                          <Ionicons name={t.icon as any} size={11} color={updateTag === t.tag ? t.color : Colors.textMuted} />
+                          <Text style={[styles.postUpdateTagBtnText, updateTag === t.tag && { color: t.color, fontWeight: FontWeight.semibold }]}>{t.label}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                    <View style={styles.postUpdateInputRow}>
+                      <TextInput
+                        style={styles.postUpdateInput}
+                        placeholder="What's the latest? What are you stuck on?"
+                        placeholderTextColor={Colors.textMuted}
+                        value={updateInput}
+                        onChangeText={setUpdateInput}
+                        multiline
+                        autoFocus
+                      />
+                      <Pressable
+                        style={[styles.postUpdateSubmitBtn, !updateInput.trim() && styles.postUpdateSubmitDisabled]}
+                        onPress={() => {
+                          if (!updateInput.trim()) return;
+                          addProjectUpdate({ id: `upd-${Date.now()}`, text: updateInput.trim(), timestamp: Date.now(), tag: updateTag });
+                          setUpdateInput('');
+                          setShowUpdateForm(false);
+                        }}
+                      >
+                        <Ionicons name="arrow-up" size={16} color="#fff" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Pressable style={styles.addUpdateBtn} onPress={() => setShowUpdateForm(true)}>
+                    <Ionicons name="add" size={13} color={Colors.textSecondary} />
+                    <Text style={styles.addUpdateText}>Post update</Text>
+                  </Pressable>
+                )}
               </View>
             ) : (
               <Text style={styles.emptyField}>No project added yet.</Text>
@@ -1107,6 +1265,16 @@ function ExperienceCard({ exp, onEdit, styles, Colors }: { exp: Experience; onEd
             {exp.skills.length > 4 && <Text style={styles.expMoreSkills}>+{exp.skills.length - 4}</Text>}
           </View>
         )}
+        {exp.proofLinks && exp.proofLinks.length > 0 && (
+          <View style={styles.proofLinksRow}>
+            {exp.proofLinks.map((pl, idx) => (
+              <Pressable key={idx} style={styles.proofLinkBtn} onPress={() => Linking.openURL(pl.url)}>
+                <Ionicons name="link-outline" size={11} color={Colors.accent} />
+                <Text style={styles.proofLinkLabel}>{pl.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
         <Pressable
           style={({ pressed }) => [styles.publishBtn, isPublished && styles.publishBtnActive, pressed && { opacity: 0.7 }]}
           onPress={handlePublishToggle}
@@ -1167,6 +1335,60 @@ function Stat({ value, label, styles }: { value: string; label: string; styles: 
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+const STAGE_CONFIG: Record<string, { color: string; icon: string }> = {
+  Ideating: { color: '#A855F7', icon: 'bulb-outline' },
+  Building: { color: '#3B82F6', icon: 'hammer-outline' },
+  Testing:  { color: '#F59E0B', icon: 'flask-outline' },
+  Launching:{ color: '#22C55E', icon: 'rocket-outline' },
+  Paused:   { color: '#6B7280', icon: 'pause-circle-outline' },
+};
+
+export const UPDATE_TAGS: { tag: ProjectUpdateTag; label: string; icon: string; color: string; softColor: string }[] = [
+  { tag: 'progress',  label: 'Progress',  icon: 'trending-up-outline',  color: '#3B82F6', softColor: 'rgba(59,130,246,0.1)' },
+  { tag: 'stuck',     label: 'Stuck on',  icon: 'help-circle-outline',  color: '#F59E0B', softColor: 'rgba(245,158,11,0.1)' },
+  { tag: 'milestone', label: 'Milestone', icon: 'star-outline',          color: '#A855F7', softColor: 'rgba(168,85,247,0.1)' },
+  { tag: 'shipped',   label: 'Shipped',   icon: 'rocket-outline',       color: '#22C55E', softColor: 'rgba(34,197,94,0.1)'  },
+];
+
+function ProjectStageBadge({ stage, Colors, styles }: { stage: string; Colors: ColorPalette; styles: Styles }) {
+  const cfg = STAGE_CONFIG[stage];
+  if (!cfg) return null;
+  return (
+    <View style={[styles.stageBadge, { backgroundColor: cfg.color + '18', borderColor: cfg.color + '44' }]}>
+      <Ionicons name={cfg.icon as any} size={10} color={cfg.color} />
+      <Text style={[styles.stageBadgeText, { color: cfg.color }]}>{stage}</Text>
+    </View>
+  );
+}
+
+function UpdateRow({ update, isLast, styles, Colors }: { update: ProjectUpdate; isLast: boolean; styles: Styles; Colors: ColorPalette }) {
+  const tag = UPDATE_TAGS.find((t) => t.tag === update.tag) ?? UPDATE_TAGS[0];
+  const elapsed = Date.now() - update.timestamp;
+  const mins = Math.floor(elapsed / 60000);
+  const hours = Math.floor(elapsed / 3600000);
+  const days = Math.floor(elapsed / 86400000);
+  const timeLabel = days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : mins > 0 ? `${mins}m ago` : 'just now';
+
+  return (
+    <View style={styles.updateRow}>
+      <View style={styles.updateRail}>
+        <View style={[styles.updateDot, { backgroundColor: tag.color }]} />
+        {!isLast && <View style={styles.updateConnector} />}
+      </View>
+      <View style={styles.updateContent}>
+        <View style={styles.updateHeader}>
+          <View style={[styles.updateTagChip, { backgroundColor: tag.softColor, borderColor: tag.color + '44' }]}>
+            <Ionicons name={tag.icon as any} size={10} color={tag.color} />
+            <Text style={[styles.updateTagText, { color: tag.color }]}>{tag.label}</Text>
+          </View>
+          <Text style={styles.updateTimestamp}>{timeLabel}</Text>
+        </View>
+        <Text style={styles.updateText}>{update.text}</Text>
+      </View>
     </View>
   );
 }

@@ -151,7 +151,7 @@ export default function ConversationScreen() {
   const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const student = STUDENTS.find((s) => s.id === id);
-  const { getOrCreate, sendMessage, sendPortfolio } = useMessagesStore();
+  const { getOrCreate, sendMessage, sendPortfolio, markRead } = useMessagesStore();
   const experiences = usePortfolioStore((s) => s.experiences);
   const [text, setText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
@@ -187,6 +187,7 @@ export default function ConversationScreen() {
   );
 
   useEffect(() => {
+    if (conversation) markRead(conversation.id);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 50);
   }, []);
 

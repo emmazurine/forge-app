@@ -16,7 +16,7 @@ import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme
 import { ColorPalette } from '../../src/constants/themes';
 import { useColors } from '../../src/hooks/useColors';
 import { usePortfolioStore } from '../../src/store/portfolio';
-import { Experience, ExperienceType } from '../../src/types/portfolio';
+import { Experience, ExperienceType, ProofLink } from '../../src/types/portfolio';
 
 function placeholderTitle(type: ExperienceType): string {
   const map: Record<ExperienceType, string> = {
@@ -49,6 +49,17 @@ function createStyles(C: ColorPalette) {
     tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
     skillTag: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.border, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: 5 },
     skillTagText: { fontSize: FontSize.xs, color: C.textSecondary, fontWeight: FontWeight.medium },
+    proofLinkRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+    proofLabelInput: { width: 110, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md + 2, color: C.text, fontSize: FontSize.sm },
+    proofUrlInput: { flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md + 2, color: C.text, fontSize: FontSize.sm },
+    proofAddBtn: { width: 40, height: 40, borderRadius: Radius.lg, backgroundColor: C.accentSoft, borderWidth: 1, borderColor: C.accent + '44', alignItems: 'center', justifyContent: 'center' },
+    proofChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+    proofChip: { paddingHorizontal: Spacing.md, paddingVertical: 5, borderRadius: Radius.full, backgroundColor: C.surfaceElevated, borderWidth: 1, borderColor: C.borderSubtle },
+    proofChipText: { fontSize: FontSize.xs, color: C.textSecondary, fontWeight: FontWeight.medium },
+    proofList: { gap: Spacing.sm, marginTop: Spacing.xs },
+    proofItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: C.surfaceElevated, borderRadius: Radius.md, padding: Spacing.md, borderWidth: 1, borderColor: C.borderSubtle },
+    proofItemLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: C.accent, minWidth: 72 },
+    proofItemUrl: { flex: 1, fontSize: FontSize.xs, color: C.textSecondary },
     deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radius.lg, borderWidth: 1, borderColor: C.red + '44' },
     deleteBtnText: { fontSize: FontSize.sm, color: C.red, fontWeight: FontWeight.medium },
     footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg, borderTopWidth: 1, borderTopColor: C.borderSubtle, gap: Spacing.sm },
@@ -89,6 +100,24 @@ export default function AddExperienceScreen() {
   const [link, setLink]             = useState(editing?.link ?? '');
   const [skills, setSkills]         = useState<string[]>(editing?.skills ?? []);
   const [skillInput, setSkillInput] = useState('');
+  const [proofLinks, setProofLinks] = useState<ProofLink[]>(editing?.proofLinks ?? []);
+  const [proofLabel, setProofLabel] = useState('');
+  const [proofUrl, setProofUrl]     = useState('');
+
+  const PROOF_PRESETS = ['GitHub', 'Devpost', 'Pitch Deck', 'Live Demo', 'Paper', 'Demo Video'];
+
+  const addProofLink = () => {
+    const label = proofLabel.trim();
+    const url = proofUrl.trim();
+    if (!label || !url) return;
+    setProofLinks((p) => [...p, { label, url }]);
+    setProofLabel('');
+    setProofUrl('');
+  };
+
+  const removeProofLink = (idx: number) => {
+    setProofLinks((p) => p.filter((_, i) => i !== idx));
+  };
 
   useEffect(() => {
     if (editing) {
@@ -102,6 +131,7 @@ export default function AddExperienceScreen() {
       setEnd(editing.endDate ?? '');
       setLink(editing.link ?? '');
       setSkills(editing.skills);
+      setProofLinks(editing.proofLinks ?? []);
     }
   }, [editId]);
 
@@ -127,6 +157,7 @@ export default function AddExperienceScreen() {
       startDate: startDate.trim(),
       endDate: endDate.trim() || undefined,
       link: link.trim() || undefined,
+      proofLinks: proofLinks.length > 0 ? proofLinks : undefined,
     };
     if (editId) { updateExperience(editId, exp); } else { addExperience(exp); }
     router.back();
@@ -215,8 +246,57 @@ export default function AddExperienceScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>LINK <Text style={styles.optional}>(OPTIONAL)</Text></Text>
-            <TextInput style={styles.input} placeholder="GitHub, Devpost, paper URL…" placeholderTextColor={Colors.textMuted} value={link} onChangeText={setLink} autoCapitalize="none" keyboardType="url" maxLength={200} />
+            <Text style={styles.label}>PROOF OF WORK <Text style={styles.optional}>(OPTIONAL)</Text></Text>
+            <View style={styles.proofChips}>
+              {PROOF_PRESETS.map((preset) => (
+                <Pressable
+                  key={preset}
+                  style={styles.proofChip}
+                  onPress={() => setProofLabel(preset)}
+                >
+                  <Text style={styles.proofChipText}>{preset}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.proofLinkRow}>
+              <TextInput
+                style={styles.proofLabelInput}
+                placeholder="Label"
+                placeholderTextColor={Colors.textMuted}
+                value={proofLabel}
+                onChangeText={setProofLabel}
+                maxLength={30}
+              />
+              <TextInput
+                style={styles.proofUrlInput}
+                placeholder="https://..."
+                placeholderTextColor={Colors.textMuted}
+                value={proofUrl}
+                onChangeText={setProofUrl}
+                autoCapitalize="none"
+                keyboardType="url"
+                maxLength={200}
+                onSubmitEditing={addProofLink}
+                returnKeyType="done"
+              />
+              <Pressable style={styles.proofAddBtn} onPress={addProofLink}>
+                <Ionicons name="add" size={18} color={Colors.accent} />
+              </Pressable>
+            </View>
+            {proofLinks.length > 0 && (
+              <View style={styles.proofList}>
+                {proofLinks.map((pl, idx) => (
+                  <View key={idx} style={styles.proofItem}>
+                    <Ionicons name="link-outline" size={13} color={Colors.accent} />
+                    <Text style={styles.proofItemLabel}>{pl.label}</Text>
+                    <Text style={styles.proofItemUrl} numberOfLines={1}>{pl.url}</Text>
+                    <Pressable onPress={() => removeProofLink(idx)} hitSlop={8}>
+                      <Ionicons name="close-circle" size={15} color={Colors.textMuted} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {editId && (

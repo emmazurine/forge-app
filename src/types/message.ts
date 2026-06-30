@@ -18,4 +18,5 @@ export interface Conversation {
   participantSchool: string;
   messages: Message[];
   updatedAt: number;
+  readAt?: number;
 }

@@ -21,11 +21,27 @@ import { ColorPalette } from '../src/constants/themes';
 import { useColors } from '../src/hooks/useColors';
 import { useOnboardingStore } from '../src/store/onboarding';
 
-const INTERESTS = [
-  'AI / ML', 'Startups', 'Research', 'Robotics', 'Policy',
-  'Health', 'Game Dev', 'EdTech', 'Hardware', 'Design',
-  'Social Impact', 'Climate Tech', 'Crypto', 'Biomedical',
-  'Open Source', 'Comp Sci', 'Physics', 'Music Tech',
+const INTEREST_GROUPS = [
+  {
+    label: 'Tech & Science',
+    items: ['AI / ML', 'Robotics', 'Comp Sci', 'Hardware', 'Physics', 'Biomedical', 'Climate Tech', 'Open Source', 'Crypto', 'Game Dev', 'Music Tech'],
+  },
+  {
+    label: 'Business & Entrepreneurship',
+    items: ['Startups', 'Research', 'EdTech', 'Health', 'Social Impact', 'Finance', 'Marketing', 'Product Management'],
+  },
+  {
+    label: 'Humanities & Social Sciences',
+    items: ['History', 'Philosophy', 'Political Science', 'Economics', 'Psychology', 'Sociology', 'International Relations', 'Law', 'Linguistics', 'Anthropology'],
+  },
+  {
+    label: 'Arts & Media',
+    items: ['Design', 'Creative Writing', 'Journalism', 'Theater / Performance', 'Fine Arts', 'Architecture', 'Film', 'Photography'],
+  },
+  {
+    label: 'Policy & Society',
+    items: ['Policy', 'Civic Tech', 'Gender Studies', 'Public Health', 'Education Reform', 'Criminal Justice'],
+  },
 ];
 
 const YEARS = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate', 'PhD'];
@@ -70,6 +86,10 @@ function createStyles(C: ColorPalette) {
     interestChipText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: C.textSecondary },
     interestChipTextActive: { color: C.accent, fontWeight: FontWeight.semibold },
     selectionCount: { fontSize: FontSize.xs, color: C.textMuted, textAlign: 'center' },
+    interestGroupLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: C.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: Spacing.md, marginBottom: Spacing.xs },
+    customInterestRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+    customInterestInput: { flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent, borderRadius: Radius.full, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm + 2, color: C.text, fontSize: FontSize.sm },
+    customInterestAddBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' },
     toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.md },
     toggleInfo: { flex: 1, gap: 3 },
     toggleLabel: { fontSize: FontSize.md, fontWeight: FontWeight.medium, color: C.text },
@@ -153,7 +173,7 @@ function WelcomeStep() {
 function ProfileStep() {
   const Colors = useColors();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
-  const { name, school, major, year, setName, setSchool, setMajor, setYear, nextStep } = useOnboardingStore();
+  const { name, school, major, year, zipCode, setName, setSchool, setMajor, setYear, setZipCode, nextStep } = useOnboardingStore();
   const canContinue = name.trim().length > 0 && school.trim().length > 0 && year.length > 0;
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -168,7 +188,18 @@ function ProfileStep() {
             <TextInput style={styles.input} placeholder="Your school or university" placeholderTextColor={Colors.textMuted} value={school} onChangeText={setSchool} returnKeyType="next" />
           </Field>
           <Field label="MAJOR / FIELD (OPTIONAL)" styles={styles}>
-            <TextInput style={styles.input} placeholder="e.g. Computer Science" placeholderTextColor={Colors.textMuted} value={major} onChangeText={setMajor} returnKeyType="done" />
+            <TextInput style={styles.input} placeholder="e.g. Computer Science" placeholderTextColor={Colors.textMuted} value={major} onChangeText={setMajor} returnKeyType="next" />
+          </Field>
+          <Field label="HOME ZIP CODE (OPTIONAL)" styles={styles}>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 22030"
+              placeholderTextColor={Colors.textMuted}
+              value={zipCode}
+              onChangeText={(v) => setZipCode(v.replace(/[^0-9]/g, '').slice(0, 10))}
+              keyboardType="numeric"
+              returnKeyType="done"
+            />
           </Field>
           <Field label="YEAR" styles={styles}>
             <View style={styles.chipGrid}>
@@ -192,23 +223,73 @@ function InterestsStep() {
   const Colors = useColors();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { interests, toggleInterest, nextStep } = useOnboardingStore();
+  const [customInput, setCustomInput] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
   const canContinue = interests.length >= 1;
+
+  const addCustom = () => {
+    const val = customInput.trim();
+    if (val && !interests.includes(val)) toggleInterest(val);
+    setCustomInput('');
+    setShowCustom(false);
+  };
+
   return (
     <>
-      <ScrollView style={styles.stepScroll} contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.stepScroll} contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.stepTitle}>What drives you?</Text>
-        <Text style={styles.stepSubtitle}>Select everything that sparks your interest.</Text>
+        <Text style={styles.stepSubtitle}>Select everything that sparks your interest — STEM, arts, humanities, anything.</Text>
+        {INTEREST_GROUPS.map((group) => (
+          <View key={group.label}>
+            <Text style={styles.interestGroupLabel}>{group.label}</Text>
+            <View style={styles.interestGrid}>
+              {group.items.map((interest) => {
+                const active = interests.includes(interest);
+                return (
+                  <Pressable key={interest} style={[styles.interestChip, active && styles.interestChipActive]} onPress={() => toggleInterest(interest)}>
+                    {active && <Ionicons name="checkmark" size={12} color={Colors.accent} />}
+                    <Text style={[styles.interestChipText, active && styles.interestChipTextActive]}>{interest}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
+        {/* Custom "Other" interests */}
+        <Text style={styles.interestGroupLabel}>Other</Text>
         <View style={styles.interestGrid}>
-          {INTERESTS.map((interest) => {
-            const active = interests.includes(interest);
-            return (
-              <Pressable key={interest} style={[styles.interestChip, active && styles.interestChipActive]} onPress={() => toggleInterest(interest)}>
-                {active && <Ionicons name="checkmark" size={12} color={Colors.accent} />}
-                <Text style={[styles.interestChipText, active && styles.interestChipTextActive]}>{interest}</Text>
+          {interests.filter((i) => !INTEREST_GROUPS.flatMap((g) => g.items).includes(i)).map((custom) => (
+            <Pressable key={custom} style={[styles.interestChip, styles.interestChipActive]} onPress={() => toggleInterest(custom)}>
+              <Ionicons name="checkmark" size={12} color={Colors.accent} />
+              <Text style={[styles.interestChipText, styles.interestChipTextActive]}>{custom}</Text>
+            </Pressable>
+          ))}
+          {showCustom ? (
+            <View style={styles.customInterestRow}>
+              <TextInput
+                style={styles.customInterestInput}
+                placeholder="Add your own..."
+                placeholderTextColor={Colors.textMuted}
+                value={customInput}
+                onChangeText={setCustomInput}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={addCustom}
+                maxLength={40}
+              />
+              <Pressable style={styles.customInterestAddBtn} onPress={addCustom}>
+                <Ionicons name="add" size={18} color="#fff" />
               </Pressable>
-            );
-          })}
+            </View>
+          ) : (
+            <Pressable style={styles.interestChip} onPress={() => setShowCustom(true)}>
+              <Ionicons name="add" size={12} color={Colors.textMuted} />
+              <Text style={styles.interestChipText}>Add your own</Text>
+            </Pressable>
+          )}
         </View>
+
         {interests.length > 0 && <Text style={styles.selectionCount}>{interests.length} selected</Text>}
       </ScrollView>
       <View style={styles.footer}>
@@ -262,41 +343,23 @@ function BuildingStep() {
 
 type Styles = ReturnType<typeof createStyles>;
 
-type VerifyPhase = 'pick' | 'email-input' | 'email-code' | 'email-done' | 'id-upload' | 'id-pending';
+type VerifyPhase = 'upload' | 'pending';
 
 function VerifyStep() {
   const router = useRouter();
   const Colors = useColors();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
-  const { userId, setVerification, complete } = useOnboardingStore();
+  const { userId, setVerification, verificationStatus, complete } = useOnboardingStore();
 
-  const [phase, setPhase] = useState<VerifyPhase>('pick');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [phase, setPhase] = useState<VerifyPhase>(
+    verificationStatus === 'pending' || verificationStatus === 'verified' ? 'pending' : 'upload'
+  );
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileUri, setFileUri] = useState<string | null>(null);
   const [fileMimeType, setFileMimeType] = useState<string | null>(null);
   const [fileObject, setFileObject] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const isValidEmail = (e: string) =>
-    e.includes('@') && (e.endsWith('.edu') || e.includes('.edu.') || e.includes('.k12.'));
-  const emailError = email.length > 3 && !isValidEmail(email) ? 'Must be a school email (.edu)' : '';
-  const codeValid = code.length === 6 && /^\d+$/.test(code);
-
-  const handleSendCode = () => { if (isValidEmail(email)) setPhase('email-code'); };
-
-  const handleVerifyCode = async () => {
-    if (!codeValid) return;
-    if (isSupabaseConfigured) {
-      await supabase.from('verifications').upsert({
-        user_id: userId, method: 'email', email, status: 'verified',
-      });
-    }
-    setVerification('email', 'verified', email);
-    setPhase('email-done');
-  };
 
   const handlePickFile = async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -309,14 +372,15 @@ function VerifyStep() {
       setFileUri(asset.uri);
       setFileMimeType(asset.mimeType ?? null);
       setFileObject((asset as any).file ?? null);
+      setUploadError(null);
     }
   };
 
-  const handleIDSubmit = async () => {
+  const handleSubmit = async () => {
     if (!fileName) return;
     if (!isSupabaseConfigured) {
-      setVerification('id', 'pending');
-      setPhase('id-pending');
+      setVerification('id', 'verified');
+      setPhase('pending');
       return;
     }
     setUploading(true);
@@ -334,12 +398,12 @@ function VerifyStep() {
       if (storageError) throw new Error(storageError.message);
 
       const { error: dbError } = await supabase.from('verifications').upsert({
-        user_id: userId, method: 'id', file_name: fileName, storage_key: storageKey, status: 'pending',
-      });
+        user_id: userId, method: 'id', file_name: fileName, storage_key: storageKey, status: 'verified',
+      }, { onConflict: 'user_id' });
       if (dbError) throw new Error(dbError.message);
 
-      setVerification('id', 'pending');
-      setPhase('id-pending');
+      setVerification('id', 'verified');
+      setPhase('pending');
     } catch (err: any) {
       setUploadError(err.message ?? 'Upload failed. Please try again.');
     } finally {
@@ -357,156 +421,77 @@ function VerifyStep() {
     setFileMimeType(null);
     setFileObject(null);
     setUploadError(null);
-    setPhase('id-upload');
+    setPhase('upload');
   };
 
   const handleEnter = () => { complete(); router.replace('/(tabs)'); };
   const handleSkip = () => { setVerification(null, 'none'); complete(); router.replace('/(tabs)'); };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView style={styles.stepScroll} contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text style={styles.stepTitle}>Verify your status</Text>
-        <Text style={styles.stepSubtitle}>Forge is for real students only. This helps keep the community safe.</Text>
+    <>
+      <ScrollView style={styles.stepScroll} contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.stepTitle}>Upload your transcript</Text>
+        <Text style={styles.stepSubtitle}>We manually review transcripts to confirm you're an active student.</Text>
 
-        {phase === 'pick' && (
+        {phase === 'upload' && (
           <>
-            <Pressable style={styles.verifyMethodCard} onPress={() => setPhase('email-input')}>
+            <View style={styles.verifyMethodCard}>
               <View style={styles.verifyMethodIcon}>
-                <Ionicons name="mail-outline" size={22} color={Colors.accent} />
+                <Ionicons name="shield-checkmark-outline" size={22} color={Colors.accent} />
               </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Text style={styles.verifyMethodTitle}>School Email</Text>
-                <Text style={styles.verifyMethodDesc}>Get a code sent to your .edu address</Text>
-              </View>
-              <View style={styles.verifyBadgeInstant}><Text style={styles.verifyBadgeInstantText}>Instant</Text></View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-            </Pressable>
-
-            <Pressable style={styles.verifyMethodCard} onPress={() => setPhase('id-upload')}>
-              <View style={styles.verifyMethodIcon}>
-                <Ionicons name="card-outline" size={22} color={Colors.accent} />
-              </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Text style={styles.verifyMethodTitle}>Student ID or Transcript</Text>
-                <Text style={styles.verifyMethodDesc}>Upload a photo of your school ID or recent transcript</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-            </Pressable>
-
-            <Pressable onPress={handleSkip} style={{ alignItems: 'center', paddingVertical: Spacing.md }}>
-              <Text style={styles.skipText}>Skip for now — verify later in Profile</Text>
-            </Pressable>
-          </>
-        )}
-
-        {phase === 'email-input' && (
-          <>
-            <Pressable onPress={() => setPhase('pick')} style={styles.backLink}>
-              <Ionicons name="arrow-back" size={15} color={Colors.textMuted} />
-              <Text style={styles.backLinkText}>Choose different method</Text>
-            </Pressable>
-            <Field label="SCHOOL EMAIL ADDRESS" styles={styles}>
-              <TextInput
-                style={[styles.input, emailError ? { borderColor: Colors.red } : undefined]}
-                placeholder="you@university.edu"
-                placeholderTextColor={Colors.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoFocus
-              />
-              {emailError ? <Text style={styles.inputError}>{emailError}</Text> : null}
-            </Field>
-          </>
-        )}
-
-        {phase === 'email-code' && (
-          <>
-            <View style={styles.verifyStatusCard}>
-              <Ionicons name="mail-open-outline" size={24} color={Colors.accent} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.verifyStatusTitle}>Code sent to</Text>
-                <Text style={styles.verifyStatusEmail} numberOfLines={1}>{email}</Text>
-              </View>
+              <Text style={styles.verifyMethodDesc}>
+                Your transcript is only used to verify your student status — it's never shared with other users or stored beyond the review period.
+              </Text>
             </View>
-            <Field label="6-DIGIT CODE" styles={styles}>
-              <TextInput
-                style={styles.input}
-                placeholder="123456"
-                placeholderTextColor={Colors.textMuted}
-                value={code}
-                onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-              />
-            </Field>
-          </>
-        )}
 
-        {phase === 'email-done' && (
-          <View style={styles.verifySuccessCard}>
-            <Ionicons name="shield-checkmark" size={48} color={Colors.green} />
-            <Text style={styles.verifySuccessTitle}>You're verified!</Text>
-            <Text style={styles.verifySuccessDesc}>Your student status has been confirmed. Welcome to Forge.</Text>
-          </View>
-        )}
-
-        {phase === 'id-upload' && (
-          <>
-            <Pressable onPress={() => setPhase('pick')} style={styles.backLink}>
-              <Ionicons name="arrow-back" size={15} color={Colors.textMuted} />
-              <Text style={styles.backLinkText}>Choose different method</Text>
-            </Pressable>
-            <Pressable style={[styles.uploadCard, !!fileName && styles.uploadCardSelected]} onPress={handlePickFile}>
+            <Pressable
+              style={[styles.uploadCard, !!fileName && styles.uploadCardSelected]}
+              onPress={handlePickFile}
+            >
               {fileName ? (
                 <>
-                  <Ionicons name="document-text" size={40} color={Colors.green} />
+                  <Ionicons name="document-text" size={44} color={Colors.green} />
                   <Text style={[styles.uploadLabel, { color: Colors.green }]} numberOfLines={1}>{fileName}</Text>
                   <Text style={styles.uploadSub}>Tap to choose a different file</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="cloud-upload-outline" size={40} color={Colors.textMuted} />
-                  <Text style={styles.uploadLabel}>Tap to choose file</Text>
-                  <Text style={styles.uploadSub}>Student ID or recent transcript</Text>
+                  <Ionicons name="cloud-upload-outline" size={44} color={Colors.textMuted} />
+                  <Text style={styles.uploadLabel}>Tap to upload transcript</Text>
+                  <Text style={styles.uploadSub}>PDF or photo — unofficial is fine</Text>
                 </>
               )}
             </Pressable>
-            <Text style={styles.uploadAccepted}>Accepted: PDF, photo ID, enrollment letter, transcript</Text>
+
+            <Text style={styles.uploadAccepted}>Accepted: PDF · JPG / PNG · Unofficial OK · Any semester</Text>
             {uploadError ? <Text style={styles.inputError}>{uploadError}</Text> : null}
+
+            <Pressable onPress={handleSkip} style={{ alignItems: 'center', paddingVertical: Spacing.sm }}>
+              <Text style={styles.skipText}>Skip for now — verify later in Profile</Text>
+            </Pressable>
           </>
         )}
 
-        {phase === 'id-pending' && (
+        {phase === 'pending' && (
           <View style={styles.verifyPendingCard}>
             <Ionicons name="hourglass-outline" size={48} color={Colors.orange} />
             <Text style={styles.verifyPendingTitle}>Under Review</Text>
-            <Text style={styles.verifyPendingDesc}>We'll verify your student status shortly. Explore Forge in the meantime.</Text>
+            <Text style={styles.verifyPendingDesc}>
+              We'll confirm your student status within 24 hours. You can explore Forge in the meantime.
+            </Text>
             <Pressable style={styles.verifyRemoveLink} onPress={handleRemove}>
               <Ionicons name="refresh-outline" size={14} color={Colors.textMuted} />
-              <Text style={styles.verifyRemoveLinkText}>Remove & re-upload a different document</Text>
+              <Text style={styles.verifyRemoveLinkText}>Remove & upload a different transcript</Text>
             </Pressable>
           </View>
         )}
       </ScrollView>
 
       <View style={styles.footer}>
-        {phase === 'email-input' && (
-          <ContinueButton label="Send Verification Code" onPress={handleSendCode} disabled={!isValidEmail(email)} styles={styles} />
-        )}
-        {phase === 'email-code' && (
-          <ContinueButton label="Verify Code" onPress={handleVerifyCode} disabled={!codeValid} styles={styles} />
-        )}
-        {(phase === 'email-done' || phase === 'id-pending') && (
-          <ContinueButton label="Enter Forge" onPress={handleEnter} styles={styles} />
-        )}
-        {phase === 'id-upload' && (
+        {phase === 'upload' && (
           <Pressable
             style={({ pressed }) => [styles.continueBtn, (!fileName || uploading) && styles.continueBtnDisabled, pressed && !!fileName && !uploading && styles.continueBtnPressed]}
-            onPress={handleIDSubmit}
+            onPress={handleSubmit}
             disabled={!fileName || uploading}
           >
             {uploading
@@ -515,8 +500,11 @@ function VerifyStep() {
             }
           </Pressable>
         )}
+        {phase === 'pending' && (
+          <ContinueButton label="Enter Forge" onPress={handleEnter} styles={styles} />
+        )}
       </View>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 

@@ -6,14 +6,18 @@ import { Spot } from '../types/spot';
 
 interface SpotsStore {
   spots: Spot[];
+  googleCache: Spot[];
   addSpot: (spot: Spot) => void;
   addReview: (spotId: string, rating: number) => void;
+  cacheGoogleSpots: (spots: Spot[]) => void;
 }
 
 export const useSpotsStore = create<SpotsStore>()(
   persist(
     (set) => ({
       spots: SPOTS,
+      googleCache: [],
+      cacheGoogleSpots: (spots) => set({ googleCache: spots }),
       addSpot: (spot) => set((s) => ({ spots: [spot, ...s.spots] })),
       addReview: (spotId, rating) =>
         set((s) => ({

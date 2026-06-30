@@ -20,6 +20,8 @@ interface OnboardingStore {
   school: string;
   major: string;
   year: string;
+  location: string;
+  zipCode: string;
   interests: string[];
   bio: string;
   currentProject: string;
@@ -34,6 +36,8 @@ interface OnboardingStore {
   setSchool: (v: string) => void;
   setMajor: (v: string) => void;
   setYear: (v: string) => void;
+  setLocation: (v: string) => void;
+  setZipCode: (v: string) => void;
   toggleInterest: (interest: string) => void;
   setBio: (v: string) => void;
   setCurrentProject: (v: string) => void;
@@ -54,6 +58,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
       school: '',
       major: '',
       year: '',
+      location: '',
+      zipCode: '',
       interests: [],
       bio: '',
       currentProject: '',
@@ -68,6 +74,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
       setSchool: (v) => set({ school: v }),
       setMajor: (v) => set({ major: v }),
       setYear: (v) => set({ year: v }),
+      setLocation: (v) => set({ location: v }),
+      setZipCode: (v) => set({ zipCode: v }),
       toggleInterest: (interest) =>
         set((s) => ({
           interests: s.interests.includes(interest)
@@ -89,6 +97,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
         school: '',
         major: '',
         year: '',
+        location: '',
+        zipCode: '',
         interests: [],
         bio: '',
         currentProject: '',
@@ -109,6 +119,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
         school: s.school,
         major: s.major,
         year: s.year,
+        location: s.location,
+        zipCode: s.zipCode,
         interests: s.interests,
         bio: s.bio,
         currentProject: s.currentProject,

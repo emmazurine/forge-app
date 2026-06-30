@@ -5,6 +5,7 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { FontSize, FontWeight, Radius, Spacing } from '../../constants/theme';
 import { useColors } from '../../hooks/useColors';
 import { useCollaborationsStore } from '../../store/collaborations';
+import { useMessagesStore } from '../../store/messages';
 import { CollabPost } from '../../types/collaboration';
 import { formatRelativeTime } from '../../utils/time';
 import { Avatar } from '../ui/Avatar';
@@ -18,6 +19,7 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
   const router = useRouter();
   const Colors = useColors();
   const { closePost, reopenPost, removePost, toggleApply, appliedIds } = useCollaborationsStore();
+  const getOrCreate = useMessagesStore((s) => s.getOrCreate);
   const [showDetail, setShowDetail] = useState(false);
   const isOwn = post.userId === 'me';
   const hasApplied = appliedIds.includes(post.id);
@@ -116,6 +118,18 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
       borderColor: Colors.border, paddingVertical: Spacing.md,
     },
     viewProfileText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.textSecondary },
+    messageBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
+      backgroundColor: Colors.accentSoft, borderRadius: Radius.lg, borderWidth: 1,
+      borderColor: Colors.accent + '44', paddingVertical: Spacing.md,
+    },
+    messageBtnText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.accent },
+    interestedNote: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+      backgroundColor: Colors.greenSoft, borderRadius: Radius.md, padding: Spacing.md,
+      borderWidth: 1, borderColor: Colors.green + '33',
+    },
+    interestedNoteText: { fontSize: FontSize.xs, color: Colors.green, flex: 1, lineHeight: 17 },
     ownActionsRow: { flexDirection: 'row', gap: Spacing.sm },
     ownActionBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -137,6 +151,17 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
   const handleApply = () => {
     if (!post.isOpen) return;
     toggleApply(post.id);
+  };
+
+  const handleMessage = () => {
+    const conv = getOrCreate(post.userId, {
+      participantName: post.userName,
+      participantInitials: post.userInitials,
+      participantAvatarColor: post.userAvatarColor,
+      participantSchool: post.userSchool,
+    });
+    setShowDetail(false);
+    router.push(`/conversation/${conv.id}`);
   };
 
   const handleDelete = () => {
@@ -305,6 +330,20 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
                           {hasApplied ? "You're interested — tap to undo" : "I'm Interested"}
                         </Text>
                       </Pressable>
+                    )}
+                    {hasApplied && (
+                      <>
+                        <View style={styles.interestedNote}>
+                          <Ionicons name="checkmark-circle" size={15} color={Colors.green} />
+                          <Text style={styles.interestedNoteText}>
+                            {post.userName} can see your interest. Message them directly to introduce yourself.
+                          </Text>
+                        </View>
+                        <Pressable style={styles.messageBtn} onPress={handleMessage}>
+                          <Ionicons name="chatbubble-outline" size={15} color={Colors.accent} />
+                          <Text style={styles.messageBtnText}>Message {post.userName}</Text>
+                        </Pressable>
+                      </>
                     )}
                     <Pressable
                       style={styles.viewProfileBtn}

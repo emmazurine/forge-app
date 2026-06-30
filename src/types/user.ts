@@ -11,6 +11,7 @@ export interface Student {
   skills: string[];
   currentProject?: string;
   projectDescription?: string;
+  projectStage?: string;
   openToCollaborate: boolean;
   distance?: string;
   graduationYear?: string;

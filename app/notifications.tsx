@@ -7,6 +7,7 @@ import { Avatar } from '../src/components/ui/Avatar';
 import { FontSize, FontWeight, Radius, Spacing } from '../src/constants/theme';
 import { useColors } from '../src/hooks/useColors';
 import { useAllNotifications, useUnreadCount } from '../src/hooks/useNotifications';
+import { useConnectionsStore } from '../src/store/connections';
 import { useNotificationsStore } from '../src/store/notifications';
 import { AppNotification, NotificationType } from '../src/types/notification';
 
@@ -36,6 +37,7 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const Colors = useColors();
   const { lastViewedAt, markAllRead } = useNotificationsStore();
+  const { acceptRequest, declineRequest } = useConnectionsStore();
   const allNotifs = useAllNotifications();
 
   useEffect(() => { markAllRead(); }, []);
@@ -86,6 +88,11 @@ export default function NotificationsScreen() {
     rowBody: { fontSize: FontSize.xs, color: Colors.textMuted, lineHeight: 17 },
     rowTime: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 3 },
     unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.accent, marginTop: 6, flexShrink: 0 },
+    actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+    acceptBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: Spacing.sm, borderRadius: Radius.md, backgroundColor: Colors.accent },
+    acceptText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: '#fff' },
+    declineBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: Spacing.sm, borderRadius: Radius.md, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+    declineText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.textSecondary },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingTop: 80 },
     emptyTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold, color: Colors.textSecondary },
     emptyBody: { fontSize: FontSize.sm, color: Colors.textMuted },
@@ -93,29 +100,65 @@ export default function NotificationsScreen() {
 
   const renderNotif = (notif: AppNotification, unread: boolean) => {
     const cfg = TYPE_ICON[notif.type];
+    const isConnReq = notif.type === 'connection_request';
+    const reqStudentId = isConnReq ? notif.id.replace('conn-req-', '') : null;
+
+    const iconEl = notif.avatarInitials ? (
+      <View style={styles.avatarWrap}>
+        <Avatar initials={notif.avatarInitials} color={notif.avatarColor ?? '#6366F1'} size={42} />
+        <View style={[styles.typeDot, { backgroundColor: cfg.color }]}>
+          <Ionicons name={cfg.name} size={10} color="#fff" />
+        </View>
+      </View>
+    ) : (
+      <View style={[styles.iconWrap, { backgroundColor: cfg.color + '22', borderColor: cfg.color + '44' }]}>
+        <Ionicons name={cfg.name} size={20} color={cfg.color} />
+      </View>
+    );
+
+    const bodyEl = (
+      <View style={styles.body}>
+        <Text style={[styles.rowTitle, unread && styles.rowTitleUnread]}>{notif.title}</Text>
+        {!!notif.body && <Text style={styles.rowBody}>{notif.body}</Text>}
+        <Text style={styles.rowTime}>{formatTime(notif.timestamp)}</Text>
+        {isConnReq && reqStudentId && (
+          <View style={styles.actionRow}>
+            <Pressable
+              style={({ pressed }) => [styles.acceptBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => acceptRequest(reqStudentId)}
+            >
+              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Text style={styles.acceptText}>Accept</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.declineBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => declineRequest(reqStudentId)}
+            >
+              <Ionicons name="close" size={14} color={Colors.textSecondary} />
+              <Text style={styles.declineText}>Decline</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    );
+
+    if (isConnReq) {
+      return (
+        <View key={notif.id} style={[styles.row, unread && styles.rowUnread]}>
+          {iconEl}
+          {bodyEl}
+        </View>
+      );
+    }
+
     return (
       <Pressable
         key={notif.id}
-        style={[styles.row, unread && styles.rowUnread]}
+        style={({ pressed }) => [styles.row, unread && styles.rowUnread, pressed && { opacity: 0.85 }]}
         onPress={() => notif.href && router.push(notif.href as any)}
       >
-        {notif.avatarInitials ? (
-          <View style={styles.avatarWrap}>
-            <Avatar initials={notif.avatarInitials} color={notif.avatarColor ?? '#6366F1'} size={42} />
-            <View style={[styles.typeDot, { backgroundColor: cfg.color }]}>
-              <Ionicons name={cfg.name} size={10} color="#fff" />
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.iconWrap, { backgroundColor: cfg.color + '22', borderColor: cfg.color + '44' }]}>
-            <Ionicons name={cfg.name} size={20} color={cfg.color} />
-          </View>
-        )}
-        <View style={styles.body}>
-          <Text style={[styles.rowTitle, unread && styles.rowTitleUnread]}>{notif.title}</Text>
-          {!!notif.body && <Text style={styles.rowBody}>{notif.body}</Text>}
-          <Text style={styles.rowTime}>{formatTime(notif.timestamp)}</Text>
-        </View>
+        {iconEl}
+        {bodyEl}
         {unread && <View style={styles.unreadDot} />}
       </Pressable>
     );
