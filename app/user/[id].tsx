@@ -8,6 +8,7 @@ import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme
 import { ColorPalette } from '../../src/constants/themes';
 import { STUDENTS } from '../../src/data/students';
 import { useColors } from '../../src/hooks/useColors';
+import { useGuestGuard } from '../../src/hooks/useGuestGuard';
 import { useVerification } from '../../src/hooks/useVerification';
 import { useConnectionsStore } from '../../src/store/connections';
 import { useMessagesStore } from '../../src/store/messages';
@@ -98,6 +99,7 @@ export default function UserDetailScreen() {
   const student = STUDENTS.find((s) => s.id === id);
   const { openConnectModal, getStatus } = useConnectionsStore();
   const conversations = useMessagesStore((s) => s.conversations);
+  const guard = useGuestGuard();
 
   const promptVerify = (action: string) => {
     Alert.alert(
@@ -259,7 +261,9 @@ export default function UserDetailScreen() {
             ) : (
               <Pressable
                 style={({ pressed }) => [styles.connectBtn, pressed && styles.btnPressed]}
-                onPress={() => isVerified ? openConnectModal(student) : promptVerify('connect with other students')}
+                onPress={() => isVerified
+                  ? guard('connect with other students', () => openConnectModal(student), { blocking: true })
+                  : promptVerify('connect with other students')}
               >
                 <Ionicons name="person-add-outline" size={16} color="#fff" />
                 <Text style={styles.connectBtnText}>Connect with {student.name.split(' ')[0]}</Text>

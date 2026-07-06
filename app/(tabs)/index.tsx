@@ -70,6 +70,7 @@ export default function SpotsScreen() {
   const allSpotsFromStore = useSpotsStore((s) => s.spots);
   const cacheGoogleSpots = useSpotsStore((s) => s.cacheGoogleSpots);
   const savedIds = useBookmarksStore((s) => s.savedIds);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [filter, setFilter] = useState<SpotFilter>('all');
   const [query, setQuery] = useState('');
   const [maxMiles, setMaxMiles] = useState(DEFAULT_MAX_MILES);
@@ -195,6 +196,9 @@ export default function SpotsScreen() {
     emptySubtitle: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
     emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.accent, borderRadius: Radius.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, marginTop: Spacing.sm },
     emptyBtnText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: '#fff' },
+    viewToggle: { width: 34, height: 34, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+    gridRow: { flexDirection: 'row', paddingHorizontal: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
+    gridPlaceholder: { flex: 1 },
   }), [Colors]);
 
   const allSpots = useMemo(() => {
@@ -238,6 +242,9 @@ export default function SpotsScreen() {
               <Ionicons name="chevron-down" size={12} color={isFiltered ? Colors.accent : Colors.textMuted} />
             </Pressable>
           </View>
+          <Pressable style={styles.viewToggle} onPress={() => setViewMode(v => v === 'list' ? 'grid' : 'list')}>
+            <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={16} color={Colors.textSecondary} />
+          </Pressable>
           <Pressable style={[styles.addBtn, { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }]} onPress={() => router.push('/map')}>
             <Ionicons name="map-outline" size={15} color={Colors.textSecondary} />
           </Pressable>
@@ -309,8 +316,23 @@ export default function SpotsScreen() {
             <Text style={styles.emptyTitle}>No spots found</Text>
             <Text style={styles.emptySubtitle}>Try adjusting your filters</Text>
           </View>
-        ) : (
+        ) : viewMode === 'list' ? (
           filtered.map((spot) => <SpotCard key={spot.id} spot={spot} />)
+        ) : (
+          filtered.reduce<React.ReactElement[]>((rows, spot, i) => {
+            if (i % 3 === 0) {
+              const b = filtered[i + 1];
+              const c = filtered[i + 2];
+              rows.push(
+                <View key={spot.id} style={styles.gridRow}>
+                  <SpotCard spot={spot} compact />
+                  {b ? <SpotCard spot={b} compact /> : <View style={styles.gridPlaceholder} />}
+                  {c ? <SpotCard spot={c} compact /> : <View style={styles.gridPlaceholder} />}
+                </View>
+              );
+            }
+            return rows;
+          }, [])
         )}
       </ScrollView>
 

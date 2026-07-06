@@ -13,10 +13,33 @@ const FIELD_MASK = [
   'places.userRatingCount',
   'places.formattedAddress',
   'places.types',
+  'places.primaryType',
+  'places.dineIn',
   'places.currentOpeningHours.openNow',
   'places.currentOpeningHours.weekdayDescriptions',
   'places.businessStatus',
 ].join(',');
+
+// Secondary types that disqualify a place (unless it's also explicitly a cafe)
+const EXCLUDE_TYPES = new Set([
+  'restaurant', 'fast_food_restaurant', 'meal_delivery', 'meal_takeaway',
+  'bar', 'night_club', 'liquor_store', 'grocery_store', 'supermarket',
+  'convenience_store', 'gas_station', 'beauty_salon', 'hair_salon',
+  'spa', 'gym', 'lodging', 'hotel', 'motel',
+]);
+
+// Primary types that are never study spots regardless of other signals
+const EXCLUDE_PRIMARY_TYPES = new Set([
+  'donut_shop', 'ice_cream_shop', 'juice_bar', 'sandwich_shop',
+  'fast_food_restaurant', 'meal_delivery', 'meal_takeaway',
+  'pizza_restaurant', 'burger_restaurant', 'mexican_restaurant',
+  'chinese_restaurant', 'japanese_restaurant', 'thai_restaurant',
+  'indian_restaurant', 'mediterranean_restaurant', 'seafood_restaurant',
+  'steak_house', 'sushi_restaurant', 'ramen_restaurant', 'noodle_restaurant',
+  'american_restaurant', 'italian_restaurant', 'french_restaurant',
+  'bar', 'night_club', 'grocery_store', 'convenience_store',
+  'gas_station', 'beauty_salon', 'spa', 'gym', 'lodging',
+]);
 
 const EXCLUDE_NAMES = [
   /little free library/i,
@@ -32,6 +55,24 @@ const EXCLUDE_NAMES = [
   /the ups/i,
   /postal/i,
   /storage/i,
+  // Quick-service / no-seating chains
+  /dunkin/i,
+  /krispy kreme/i,
+  /duck donut/i,
+  /dutch bros/i,
+  /7.?eleven/i,
+  /wawa/i,
+  /sheetz/i,
+  /jersey mike/i,
+  /subway/i,
+  /chipotle/i,
+  /chick.?fil.?a/i,
+  /mcdonald/i,
+  /taco bell/i,
+  /sonic drive/i,
+  /smoothie king/i,
+  /tropical smoothie/i,
+  /jamba juice/i,
 ];
 
 const MIN_REVIEWS: Record<SpotType, number> = {
@@ -149,7 +190,24 @@ export async function fetchNearbyStudySpots(userLat: number, userLng: number): P
     const name = p.displayName?.text ?? '';
     if (EXCLUDE_NAMES.some((re) => re.test(name))) continue;
 
-    const spotType = googleTypeToSpotType(p.types ?? []);
+    const types: string[] = p.types ?? [];
+    const primaryType: string = p.primaryType ?? '';
+
+    // Drop by primary type (no exceptions — a donut shop is a donut shop)
+    if (EXCLUDE_PRIMARY_TYPES.has(primaryType)) continue;
+
+    // Use primaryType — Google's most specific classification — to determine if this is truly a cafe.
+    // Checking the types[] array alone lets restaurants like "Eggs & Sushi" through because Google
+    // adds 'cafe' as a loose secondary type. primaryType doesn't lie.
+    const isTrueCafe = primaryType === 'cafe' || primaryType === 'coffee_shop';
+    const isLibraryOrCoworking = types.includes('library') || types.includes('coworking_space') || types.includes('university') || types.includes('school');
+
+    if (!isTrueCafe && !isLibraryOrCoworking) continue;
+
+    // Cafes with dineIn explicitly false have no seating — not a study spot
+    if (isTrueCafe && p.dineIn === false) continue;
+
+    const spotType = googleTypeToSpotType(types);
     const minReviews = MIN_REVIEWS[spotType];
     const reviews = p.userRatingCount ?? 0;
     const rating = p.rating ?? 0;

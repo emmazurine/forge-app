@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors as StaticColors } from '../../constants/colors';
 import { FontSize, FontWeight, Radius, Spacing } from '../../constants/theme';
 import { useColors } from '../../hooks/useColors';
+import { useGuestGuard } from '../../hooks/useGuestGuard';
 import { useBookmarksStore } from '../../store/bookmarks';
 import { useCheckinsStore } from '../../store/checkins';
 import { Spot } from '../../types/spot';
@@ -34,13 +35,19 @@ const OUTLET_CONFIG = {
 
 interface SpotCardProps {
   spot: Spot;
+  compact?: boolean;
 }
 
-export function SpotCard({ spot }: SpotCardProps) {
+export function SpotCard({ spot, compact = false }: SpotCardProps) {
   const router = useRouter();
   const Colors = useColors();
   const { toggle, isBookmarked } = useBookmarksStore();
   const saved = isBookmarked(spot.id);
+  const guard = useGuestGuard();
+  const handleToggleBookmark = () => {
+    if (saved) { toggle(spot.id); return; }
+    guard('save this spot', () => toggle(spot.id));
+  };
   const noise = NOISE_CONFIG[spot.noiseLevel];
   const wifi = WIFI_CONFIG[spot.wifiQuality];
   const outlet = OUTLET_CONFIG[spot.outlets];
@@ -50,6 +57,7 @@ export function SpotCard({ spot }: SpotCardProps) {
   const liveCount = allCheckins.filter((c) => c.spotId === spot.id && c.expiresAt > now).length;
 
   const styles = useMemo(() => StyleSheet.create({
+    // ── List layout ──
     card: {
       flexDirection: 'row',
       backgroundColor: Colors.surface,
@@ -63,29 +71,11 @@ export function SpotCard({ spot }: SpotCardProps) {
     pressed: { opacity: 0.75 },
     accent: { width: 3 },
     body: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: Spacing.sm,
-    },
+    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.sm },
     headerLeft: { flex: 1, gap: 3 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-    name: {
-      fontSize: FontSize.md,
-      fontWeight: FontWeight.semibold,
-      color: Colors.text,
-      flexShrink: 1,
-    },
-    openBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 3,
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 2,
-      borderRadius: Radius.full,
-      flexShrink: 0,
-    },
+    name: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text, flexShrink: 1 },
+    openBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.full, flexShrink: 0 },
     openBadgeOpen: { backgroundColor: Colors.greenSoft },
     openBadgeClosed: { backgroundColor: Colors.redSoft },
     openDot: { width: 5, height: 5, borderRadius: 3 },
@@ -99,39 +89,81 @@ export function SpotCard({ spot }: SpotCardProps) {
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     footerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     tags: { flexDirection: 'row', gap: Spacing.xs },
-    tag: {
-      backgroundColor: Colors.surfaceElevated,
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 3,
-      borderRadius: Radius.full,
-      borderWidth: 1,
-      borderColor: Colors.borderSubtle,
-    },
+    tag: { backgroundColor: Colors.surfaceElevated, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.borderSubtle },
     tagText: { fontSize: FontSize.xs, color: Colors.textMuted },
     rating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     ratingText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: Colors.text },
     reviewText: { fontSize: FontSize.xs, color: Colors.textMuted },
-    liveRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingTop: Spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: Colors.borderSubtle,
-      marginTop: -Spacing.xs,
+    liveRow: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.borderSubtle, marginTop: -Spacing.xs },
+    liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.green },
+    liveText: { fontSize: FontSize.xs, color: Colors.green, fontWeight: FontWeight.medium },
+    // ── Grid / compact layout ──
+    cardCompact: {
+      flex: 1,
+      flexDirection: 'column',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: Colors.border,
+      overflow: 'hidden',
     },
-    liveDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-      backgroundColor: Colors.green,
-    },
-    liveText: {
-      fontSize: FontSize.xs,
-      color: Colors.green,
-      fontWeight: FontWeight.medium,
-    },
+    accentBar: { height: 3, width: '100%' },
+    bodyCompact: { flex: 1, padding: Spacing.sm + 2, gap: Spacing.xs + 1 },
+    nameCompact: { fontSize: FontSize.xs + 1, fontWeight: FontWeight.semibold, color: Colors.text, lineHeight: 16 },
+    metaCompact: { fontSize: FontSize.xs - 1, color: Colors.textMuted },
+    attrsCompact: { flexDirection: 'row', gap: Spacing.xs + 2 },
+    footerCompact: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' as any },
+    liveDotSmall: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.green },
   }), [Colors]);
+
+  if (compact) {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.cardCompact, pressed && styles.pressed]}
+        onPress={() => router.push(`/spot/${spot.id}`)}
+      >
+        <View style={[styles.accentBar, { backgroundColor: spot.accentColor }]} />
+        <View style={styles.bodyCompact}>
+          <View style={{ gap: 4 }}>
+            <Text style={styles.nameCompact} numberOfLines={2}>{spot.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexWrap: 'wrap' }}>
+              {openNow !== null && (
+                <View style={[styles.openBadge, openNow ? styles.openBadgeOpen : styles.openBadgeClosed]}>
+                  <View style={[styles.openDot, { backgroundColor: openNow ? Colors.green : Colors.red }]} />
+                  <Text style={[styles.openText, { color: openNow ? Colors.green : Colors.red }]}>
+                    {openNow ? 'Open' : 'Closed'}
+                  </Text>
+                </View>
+              )}
+              <SpotTypeBadge type={spot.type} />
+            </View>
+            <Text style={styles.metaCompact}>{spot.distance}</Text>
+          </View>
+
+          <View style={styles.attrsCompact}>
+            <Ionicons name={noise.icon as any} size={12} color={noise.color} />
+            <Ionicons name={wifi.icon as any} size={12} color={wifi.color} />
+            <Ionicons name={outlet.icon as any} size={12} color={outlet.color} />
+            {liveCount > 0 && <View style={styles.liveDotSmall} />}
+          </View>
+
+          <View style={styles.footerCompact}>
+            <View style={styles.rating}>
+              <Ionicons name="star" size={11} color={Colors.orange} />
+              <Text style={styles.ratingText}>{spot.rating.toFixed(1)}</Text>
+            </View>
+            <Pressable onPress={handleToggleBookmark} hitSlop={10}>
+              <Ionicons
+                name={saved ? 'bookmark' : 'bookmark-outline'}
+                size={15}
+                color={saved ? Colors.accent : Colors.textMuted}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -182,7 +214,7 @@ export function SpotCard({ spot }: SpotCardProps) {
               <Text style={styles.ratingText}>{spot.rating.toFixed(1)}</Text>
               <Text style={styles.reviewText}>({spot.reviewCount})</Text>
             </View>
-            <Pressable onPress={() => toggle(spot.id)} hitSlop={10}>
+            <Pressable onPress={handleToggleBookmark} hitSlop={10}>
               <Ionicons
                 name={saved ? 'bookmark' : 'bookmark-outline'}
                 size={17}

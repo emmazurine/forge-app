@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontSize, FontWeight, Radius, Spacing } from '../../constants/theme';
 import { useColors } from '../../hooks/useColors';
+import { useGuestGuard } from '../../hooks/useGuestGuard';
 import { useVerification } from '../../hooks/useVerification';
 import { useConnectionsStore } from '../../store/connections';
 import { Student } from '../../types/user';
@@ -19,6 +20,7 @@ export function StudentCard({ student, isMe }: StudentCardProps) {
   const Colors = useColors();
   const { isVerified } = useVerification();
   const { openConnectModal, getStatus } = useConnectionsStore();
+  const guard = useGuestGuard();
   const status = isMe ? null : getStatus(student.id);
   const isPending = status === 'pending';
   const isConnected = status === 'connected';
@@ -133,7 +135,7 @@ export function StudentCard({ student, isMe }: StudentCardProps) {
       );
       return;
     }
-    openConnectModal(student);
+    guard('connect with other students', () => openConnectModal(student), { blocking: true });
   };
 
   return (

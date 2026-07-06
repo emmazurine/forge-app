@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontSize, FontWeight, Radius, Spacing } from '../../constants/theme';
 import { useColors } from '../../hooks/useColors';
+import { useGuestGuard } from '../../hooks/useGuestGuard';
 import { useCollaborationsStore } from '../../store/collaborations';
 import { useMessagesStore } from '../../store/messages';
 import { CollabPost } from '../../types/collaboration';
@@ -20,6 +21,7 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
   const Colors = useColors();
   const { closePost, reopenPost, removePost, toggleApply, appliedIds } = useCollaborationsStore();
   const getOrCreate = useMessagesStore((s) => s.getOrCreate);
+  const guard = useGuestGuard();
   const [showDetail, setShowDetail] = useState(false);
   const isOwn = post.userId === 'me';
   const hasApplied = appliedIds.includes(post.id);
@@ -150,7 +152,8 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
 
   const handleApply = () => {
     if (!post.isOpen) return;
-    toggleApply(post.id);
+    if (hasApplied) { toggleApply(post.id); return; }
+    guard('sign up to collaborate on this', () => toggleApply(post.id), { blocking: true });
   };
 
   const handleMessage = () => {

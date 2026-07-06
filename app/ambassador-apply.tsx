@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -94,6 +95,8 @@ export default function AmbassadorApplyScreen() {
   const [eventTypes, setEventTypes] = useState<string[]>([]);
   const [reach, setReach] = useState('');
   const [availability, setAvailability] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const toggleChip = (arr: string[], setArr: (v: string[]) => void, id: string) => {
     setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
@@ -105,9 +108,16 @@ export default function AmbassadorApplyScreen() {
     reach.trim().length >= 20 &&
     availability.length >= 1;
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    submit({ pitch: pitch.trim(), eventTypes, reach: reach.trim(), availability });
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = await submit({ pitch: pitch.trim(), eventTypes, reach: reach.trim(), availability });
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error ?? 'Something went wrong. Please try again.');
+      return;
+    }
     router.back();
   };
 
@@ -172,6 +182,7 @@ export default function AmbassadorApplyScreen() {
     submitBtnDisabled: { backgroundColor: Colors.border },
     submitText: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#fff' },
     submitHint: { fontSize: FontSize.xs, color: Colors.textMuted, textAlign: 'center' },
+    submitErrorText: { fontSize: FontSize.xs, color: Colors.red, textAlign: 'center' },
   }), [Colors]);
 
   return (
@@ -291,15 +302,22 @@ export default function AmbassadorApplyScreen() {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
+        {submitError ? <Text style={styles.submitErrorText}>{submitError}</Text> : null}
         <Pressable
-          style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+          style={[styles.submitBtn, (!canSubmit || submitting) && styles.submitBtnDisabled]}
           onPress={handleSubmit}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
         >
-          <Ionicons name="star" size={18} color="#fff" />
-          <Text style={styles.submitText}>Submit Application</Text>
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="star" size={18} color="#fff" />
+              <Text style={styles.submitText}>Submit Application</Text>
+            </>
+          )}
         </Pressable>
-        {!canSubmit && (
+        {!canSubmit && !submitting && (
           <Text style={styles.submitHint}>
             Answer all questions to submit
           </Text>

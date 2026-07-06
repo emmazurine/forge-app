@@ -17,6 +17,7 @@ import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme
 import { ColorPalette } from '../../src/constants/themes';
 import { STUDENTS } from '../../src/data/students';
 import { useColors } from '../../src/hooks/useColors';
+import { useGuestGuard } from '../../src/hooks/useGuestGuard';
 import { useMessagesStore } from '../../src/store/messages';
 import { useOnboardingStore } from '../../src/store/onboarding';
 import { usePortfolioStore } from '../../src/store/portfolio';
@@ -155,21 +156,24 @@ export default function ConversationScreen() {
   const experiences = usePortfolioStore((s) => s.experiences);
   const [text, setText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
+  const guard = useGuestGuard();
 
   const handleSendPortfolio = () => {
     if (!conversation) return;
-    const saved = useProfileStore.getState().saved;
-    const ob = useOnboardingStore.getState();
-    const name = saved?.name.trim() || ob.name.trim() || 'Anonymous';
-    const initials = saved?.initials || name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-    sendPortfolio(conversation.id, {
-      senderName: name,
-      senderSchool: saved?.school || ob.school,
-      senderMajor: saved?.major || ob.major,
-      senderInitials: initials,
-      senderAvatarColor: saved?.avatarColor ?? '#6366F1',
-      experiences,
-      sharedAt: Date.now(),
+    guard('message other students', () => {
+      const saved = useProfileStore.getState().saved;
+      const ob = useOnboardingStore.getState();
+      const name = saved?.name.trim() || ob.name.trim() || 'Anonymous';
+      const initials = saved?.initials || name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+      sendPortfolio(conversation.id, {
+        senderName: name,
+        senderSchool: saved?.school || ob.school,
+        senderMajor: saved?.major || ob.major,
+        senderInitials: initials,
+        senderAvatarColor: saved?.avatarColor ?? '#6366F1',
+        experiences,
+        sharedAt: Date.now(),
+      });
     });
   };
 
@@ -198,8 +202,10 @@ export default function ConversationScreen() {
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed || !conversation) return;
-    sendMessage(conversation.id, trimmed);
-    setText('');
+    guard('message other students', () => {
+      sendMessage(conversation.id, trimmed);
+      setText('');
+    });
   };
 
   if (!conversation && !student) {
