@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '../../src/components/ui/Logo';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -24,6 +26,7 @@ import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
 import { useBookmarksStore } from '../../src/store/bookmarks';
 import { useCollaborationsStore } from '../../src/store/collaborations';
 import { useConnectionsStore } from '../../src/store/connections';
+import { useAuthStore } from '../../src/store/auth';
 import { useOnboardingStore } from '../../src/store/onboarding';
 import { useArchiveStore } from '../../src/store/archive';
 import { usePortfolioStore } from '../../src/store/portfolio';
@@ -114,6 +117,15 @@ function createStyles(C: ColorPalette) {
     savedIndicator: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     savedText: { fontSize: FontSize.sm, color: C.green, fontWeight: FontWeight.medium },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    avatarPressable: { alignSelf: 'center', position: 'relative' },
+    avatarEditBadge: {
+      position: 'absolute', bottom: -2, right: -2,
+      width: 24, height: 24, borderRadius: 12,
+      backgroundColor: C.accent,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: C.surface,
+    },
+    avatarErrorText: { fontSize: FontSize.xs, color: C.red, textAlign: 'center', marginTop: Spacing.sm },
     colorRow: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center', marginTop: Spacing.sm },
     colorSwatch: { width: 28, height: 28, borderRadius: 14 },
     colorSwatchSelected: { width: 28, height: 28, borderRadius: 14, borderWidth: 2.5, borderColor: C.text },
@@ -370,6 +382,17 @@ function createStyles(C: ColorPalette) {
     verifyStatusInfo: { flex: 1, gap: 2 },
     verifyStatusTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: C.text },
     verifyStatusSub: { fontSize: FontSize.xs, color: C.textMuted },
+    // Account
+    accountEmail: { fontSize: FontSize.sm, color: C.textSecondary, fontWeight: FontWeight.medium },
+    accountSub: { fontSize: FontSize.xs, color: C.textMuted, marginTop: 2 },
+    accountBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+      paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
+      borderRadius: Radius.md, backgroundColor: C.surfaceElevated,
+      borderWidth: 1, borderColor: C.border,
+    },
+    accountBtnPressed: { opacity: 0.7 },
+    accountBtnText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: C.text },
     // Reset
     resetSection: { marginTop: Spacing.xxl, marginHorizontal: Spacing.lg },
     resetBtn: {
@@ -561,6 +584,7 @@ export default function ProfileScreen() {
 
   const router = useRouter();
   const ambassadorStatus = useAmbassadorStore((s) => s.status);
+  const authUser = useAuthStore((s) => s.user);
 
   const { projectUpdates, addProjectUpdate } = useProfileStore();
   const [updateInput, setUpdateInput] = useState('');
@@ -573,6 +597,8 @@ export default function ProfileScreen() {
   const [newInterest, setNewInterest] = useState('');
   const [newSkill, setNewSkill] = useState('');
   const [justSaved, setJustSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // Sync when Zustand hydrates from AsyncStorage after first render
   const savedProfile = useProfileStore((s) => s.saved);
@@ -600,6 +626,50 @@ export default function ProfileScreen() {
   };
 
   const cancel = () => { setProfile({ ...committed.current }); setEditing(false); setNewInterest(''); setNewSkill(''); };
+
+  const applyAvatarUrl = (avatarUrl: string) => {
+    setProfile((p) => ({ ...p, avatarUrl }));
+    committed.current = { ...committed.current, avatarUrl };
+    useProfileStore.getState().saveProfile({ ...committed.current, avatarUrl });
+  };
+
+  const pickAvatar = async () => {
+    setAvatarError(null);
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setAvatarError('Photo library access is needed to set a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const localUri = result.assets[0].uri;
+
+    if (isSupabaseConfigured && authUser) {
+      setAvatarUploading(true);
+      try {
+        const response = await fetch(localUri);
+        const blob = await response.blob();
+        const path = `${authUser.id}/avatar.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+        applyAvatarUrl(`${data.publicUrl}?t=${Date.now()}`);
+      } catch (e: any) {
+        setAvatarError(e?.message ?? 'Could not upload photo.');
+      } finally {
+        setAvatarUploading(false);
+      }
+    } else {
+      applyAvatarUrl(localUri);
+    }
+  };
 
   const addInterest = () => {
     const val = newInterest.trim();
@@ -665,7 +735,17 @@ export default function ProfileScreen() {
 
           {/* Hero card */}
           <View style={styles.heroCard}>
-            <Avatar initials={profile.initials} color={profile.avatarColor} size={72} />
+            <Pressable onPress={pickAvatar} disabled={avatarUploading} style={styles.avatarPressable}>
+              <Avatar initials={profile.initials} color={profile.avatarColor} size={72} uri={profile.avatarUrl} />
+              <View style={styles.avatarEditBadge}>
+                {avatarUploading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="camera" size={13} color="#fff" />
+                )}
+              </View>
+            </Pressable>
+            {avatarError && <Text style={styles.avatarErrorText}>{avatarError}</Text>}
             {editing && (
               <View style={styles.colorRow}>
                 {AVATAR_COLORS.map((c) => (
@@ -1057,6 +1137,41 @@ export default function ProfileScreen() {
                   <View style={[styles.toggleThumb, { alignSelf: isDark ? 'flex-end' : 'flex-start' }]} />
                 </View>
               </Pressable>
+            </Section>
+          )}
+
+          {/* Account */}
+          {!editing && (
+            <Section styles={styles} title="Account" icon="person-circle-outline">
+              <View style={styles.appearanceRow}>
+                <View style={styles.appearanceLeft}>
+                  <Ionicons name={authUser ? 'mail-outline' : 'log-in-outline'} size={18} color={Colors.textSecondary} />
+                  {authUser ? (
+                    <View>
+                      <Text style={styles.accountEmail}>{authUser.email}</Text>
+                      <Text style={styles.accountSub}>Logged in</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.appearanceLabel}>Not logged in</Text>
+                  )}
+                </View>
+                {authUser ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.accountBtn, pressed && styles.accountBtnPressed]}
+                    onPress={() => useAuthStore.getState().signOut()}
+                  >
+                    <Ionicons name="log-out-outline" size={14} color={Colors.red} />
+                    <Text style={[styles.accountBtnText, { color: Colors.red }]}>Log Out</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={({ pressed }) => [styles.accountBtn, pressed && styles.accountBtnPressed]}
+                    onPress={() => router.push('/login')}
+                  >
+                    <Text style={styles.accountBtnText}>Log In</Text>
+                  </Pressable>
+                )}
+              </View>
             </Section>
           )}
 

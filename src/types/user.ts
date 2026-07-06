@@ -3,6 +3,7 @@ export interface Student {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarUrl?: string;
   school: string;
   major: string;
   year: string;

@@ -64,7 +64,7 @@ export default function EventDetailScreen() {
     } else if (isFull) {
       Alert.alert('Event is full', 'All spots have been claimed. Check back for future events.');
     } else {
-      rsvp(event.id);
+      rsvp(event);
     }
   };
 
