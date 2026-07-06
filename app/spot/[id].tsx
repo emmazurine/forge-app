@@ -7,6 +7,7 @@ import { SpotTypeBadge } from '../../src/components/ui/Badge';
 import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme';
 import { ColorPalette } from '../../src/constants/themes';
 import { useColors } from '../../src/hooks/useColors';
+import { useGuestGuard } from '../../src/hooks/useGuestGuard';
 import { useBookmarksStore } from '../../src/store/bookmarks';
 import { useCheckinsStore } from '../../src/store/checkins';
 import { useOnboardingStore } from '../../src/store/onboarding';
@@ -172,6 +173,12 @@ export default function SpotDetailScreen() {
   const spot = spots.find((s) => s.id === id) ?? googleCache.find((s) => s.id === id);
   const { toggle, isBookmarked } = useBookmarksStore();
   const saved = spot ? isBookmarked(spot.id) : false;
+  const guard = useGuestGuard();
+  const handleToggleBookmark = () => {
+    if (!spot) return;
+    if (saved) { toggle(spot.id); return; }
+    guard('save this spot', () => toggle(spot.id));
+  };
   const addReview = useSpotsStore((s) => s.addReview);
   const openNow = spot
     ? (spot.openNow !== undefined ? spot.openNow : isSpotOpenNow(spot.hours))
@@ -286,7 +293,7 @@ export default function SpotDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: spot.accentColor + '18', borderColor: spot.accentColor + '33' }]}>
-          <Pressable style={styles.bookmarkBtn} onPress={() => toggle(spot.id)}>
+          <Pressable style={styles.bookmarkBtn} onPress={handleToggleBookmark}>
             <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={22} color={saved ? Colors.accent : Colors.textMuted} />
           </Pressable>
           <View style={styles.heroInner}>
