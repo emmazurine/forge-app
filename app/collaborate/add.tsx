@@ -17,7 +17,7 @@ import { useColors } from '../../src/hooks/useColors';
 import { useCollaborationsStore } from '../../src/store/collaborations';
 import { useOnboardingStore } from '../../src/store/onboarding';
 import { useProfileStore } from '../../src/store/profile';
-import { CollabType } from '../../src/types/collaboration';
+import { CollabType, CollabVisibility } from '../../src/types/collaboration';
 
 function placeholderForType(type: CollabType): string {
   const map: Record<CollabType, string> = {
@@ -38,12 +38,14 @@ export default function AddCollabScreen() {
   const addPost = useCollaborationsStore((s) => s.addPost);
   const { name: obName, school: obSchool } = useOnboardingStore();
   const savedProfile = useProfileStore((s) => s.saved);
+  const userSchool = (savedProfile?.school.trim() || obSchool.trim());
 
   const [type, setType]               = useState<CollabType | null>(null);
   const [title, setTitle]             = useState('');
   const [description, setDescription] = useState('');
   const [skills, setSkills]           = useState<string[]>([]);
   const [skillInput, setSkillInput]   = useState('');
+  const [visibility, setVisibility]   = useState<CollabVisibility>('everyone');
 
   const TYPE_OPTIONS = useMemo(() => [
     { value: 'hackathon'   as CollabType, label: 'Hackathon',   color: Colors.orange, bg: Colors.orangeSoft, description: 'Looking for teammates' },
@@ -108,6 +110,23 @@ export default function AddCollabScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    visibilityRow: { flexDirection: 'row', gap: Spacing.sm },
+    visibilityChip: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.xs,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.sm,
+      borderRadius: Radius.lg,
+      backgroundColor: Colors.surface,
+      borderWidth: 1,
+      borderColor: Colors.border,
+    },
+    visibilityChipActive: { backgroundColor: Colors.accentSoft, borderColor: Colors.accent },
+    visibilityChipText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.textSecondary },
+    visibilityChipTextActive: { color: Colors.accent, fontWeight: FontWeight.semibold },
     skillList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
     skillTag: {
       flexDirection: 'row',
@@ -167,7 +186,6 @@ export default function AddCollabScreen() {
   const handleSubmit = () => {
     if (!canSubmit || !type) return;
     const userName = savedProfile?.name.trim() || obName.trim() || 'Anonymous';
-    const userSchool = savedProfile?.school.trim() ?? obSchool.trim();
     const userInitials = savedProfile?.initials
       || userName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
     const userAvatarColor = savedProfile?.avatarColor ?? '#6366F1';
@@ -186,6 +204,7 @@ export default function AddCollabScreen() {
       postedAt: Date.now(),
       isOpen: true,
       applicantCount: 0,
+      visibility,
     });
     router.back();
   };
@@ -277,6 +296,35 @@ export default function AddCollabScreen() {
               </View>
             )}
           </View>
+
+          {!!userSchool && (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>WHO CAN SEE THIS</Text>
+              <View style={styles.visibilityRow}>
+                <Pressable
+                  style={[styles.visibilityChip, visibility === 'everyone' && styles.visibilityChipActive]}
+                  onPress={() => setVisibility('everyone')}
+                >
+                  <Ionicons name="globe-outline" size={15} color={visibility === 'everyone' ? Colors.accent : Colors.textSecondary} />
+                  <Text style={[styles.visibilityChipText, visibility === 'everyone' && styles.visibilityChipTextActive]}>
+                    Everyone
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.visibilityChip, visibility === 'school' && styles.visibilityChipActive]}
+                  onPress={() => setVisibility('school')}
+                >
+                  <Ionicons name="school-outline" size={15} color={visibility === 'school' ? Colors.accent : Colors.textSecondary} />
+                  <Text
+                    style={[styles.visibilityChipText, visibility === 'school' && styles.visibilityChipTextActive]}
+                    numberOfLines={1}
+                  >
+                    {userSchool} Only
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           {canSubmit && selectedType && (
             <View style={[styles.previewHint, { borderColor: selectedType.color + '44', backgroundColor: selectedType.bg }]}>

@@ -10,6 +10,8 @@ import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme
 import { useColors } from '../../src/hooks/useColors';
 import { useVerification } from '../../src/hooks/useVerification';
 import { useCollaborationsStore } from '../../src/store/collaborations';
+import { useOnboardingStore } from '../../src/store/onboarding';
+import { useProfileStore } from '../../src/store/profile';
 import { CollabType } from '../../src/types/collaboration';
 import { NotificationBell } from '../../src/components/ui/NotificationBell';
 
@@ -45,6 +47,9 @@ export default function CollaborateScreen() {
     router.push('/collaborate/add');
   };
   const posts = useCollaborationsStore((s) => s.posts);
+  const savedProfile = useProfileStore((s) => s.saved);
+  const obSchool = useOnboardingStore((s) => s.school);
+  const viewerSchool = (savedProfile?.school.trim() || obSchool.trim()).toLowerCase();
   const [activeType, setActiveType] = useState<CollabType | 'all' | 'mine'>('all');
   const [query, setQuery] = useState('');
 
@@ -119,7 +124,9 @@ export default function CollaborateScreen() {
   }), [Colors]);
 
   const filtered = useMemo(() => {
-    let base = posts;
+    let base = posts.filter(
+      (p) => p.userId === 'me' || p.visibility !== 'school' || p.userSchool.trim().toLowerCase() === viewerSchool
+    );
     if (activeType === 'mine') base = base.filter((p) => p.userId === 'me');
     else if (activeType !== 'all') base = base.filter((p) => p.type === activeType);
     const q = query.trim().toLowerCase();
@@ -131,11 +138,15 @@ export default function CollaborateScreen() {
         p.skills.some((s) => s.toLowerCase().includes(q)) ||
         p.userName.toLowerCase().includes(q)
     );
-  }, [posts, activeType, query]);
+  }, [posts, activeType, query, viewerSchool]);
 
   const openPosts = useMemo(() => filtered.filter((p) => p.isOpen), [filtered]);
   const closedPosts = useMemo(() => filtered.filter((p) => !p.isOpen), [filtered]);
-  const openCount = posts.filter((p) => p.isOpen).length;
+  const visiblePosts = useMemo(
+    () => posts.filter((p) => p.userId === 'me' || p.visibility !== 'school' || p.userSchool.trim().toLowerCase() === viewerSchool),
+    [posts, viewerSchool]
+  );
+  const openCount = visiblePosts.filter((p) => p.isOpen).length;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

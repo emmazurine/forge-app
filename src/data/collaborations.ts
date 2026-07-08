@@ -20,6 +20,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 2 * H,
     isOpen: true,
     applicantCount: 4,
+    visibility: 'everyone',
   },
   {
     id: '2',
@@ -36,6 +37,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 5 * H,
     isOpen: true,
     applicantCount: 7,
+    visibility: 'everyone',
   },
   {
     id: '3',
@@ -52,6 +54,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 1 * D,
     isOpen: true,
     applicantCount: 11,
+    visibility: 'everyone',
   },
   {
     id: '4',
@@ -68,6 +71,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 2 * D,
     isOpen: true,
     applicantCount: 9,
+    visibility: 'everyone',
   },
   {
     id: '5',
@@ -84,6 +88,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 3 * D,
     isOpen: true,
     applicantCount: 6,
+    visibility: 'everyone',
   },
   {
     id: '6',
@@ -100,6 +105,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 4 * D,
     isOpen: false,
     applicantCount: 14,
+    visibility: 'everyone',
   },
   {
     id: '7',
@@ -116,6 +122,7 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 5 * D,
     isOpen: true,
     applicantCount: 3,
+    visibility: 'everyone',
   },
   {
     id: '8',
@@ -132,5 +139,6 @@ export const COLLAB_POSTS: CollabPost[] = [
     postedAt: NOW - 7 * D,
     isOpen: true,
     applicantCount: 5,
+    visibility: 'everyone',
   },
 ];

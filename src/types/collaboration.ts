@@ -1,4 +1,5 @@
 export type CollabType = 'hackathon' | 'research' | 'startup' | 'club' | 'competition' | 'nonprofit' | 'other';
+export type CollabVisibility = 'everyone' | 'school';
 
 export interface CollabPost {
   id: string;
@@ -15,4 +16,5 @@ export interface CollabPost {
   postedAt: number;
   isOpen: boolean;
   applicantCount: number;
+  visibility: CollabVisibility;
 }

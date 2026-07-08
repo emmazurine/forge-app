@@ -46,6 +46,12 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
       paddingVertical: 2, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border,
     },
     closedText: { fontSize: FontSize.xs, color: Colors.textMuted, fontWeight: FontWeight.medium },
+    schoolOnlyBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      backgroundColor: Colors.accentSoft, paddingHorizontal: Spacing.sm,
+      paddingVertical: 2, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.accent + '44',
+    },
+    schoolOnlyText: { fontSize: FontSize.xs, color: Colors.accent, fontWeight: FontWeight.medium },
     time: { fontSize: FontSize.xs, color: Colors.textMuted },
     title: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text, lineHeight: 22 },
     description: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
@@ -183,6 +189,12 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
         <View style={styles.topRow}>
           <CollabTypeBadge type={post.type} />
           <View style={styles.metaRight}>
+            {post.visibility === 'school' && (
+              <View style={styles.schoolOnlyBadge}>
+                <Ionicons name="school-outline" size={11} color={Colors.accent} />
+                <Text style={styles.schoolOnlyText}>School Only</Text>
+              </View>
+            )}
             {!post.isOpen && (
               <View style={styles.closedBadge}>
                 <Text style={styles.closedText}>Filled</Text>
@@ -242,7 +254,15 @@ export function CollabPostCard({ post }: CollabPostCardProps) {
             <View style={styles.handle} />
             <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.sheetTopRow}>
-                <CollabTypeBadge type={post.type} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                  <CollabTypeBadge type={post.type} />
+                  {post.visibility === 'school' && (
+                    <View style={styles.schoolOnlyBadge}>
+                      <Ionicons name="school-outline" size={11} color={Colors.accent} />
+                      <Text style={styles.schoolOnlyText}>School Only</Text>
+                    </View>
+                  )}
+                </View>
                 <Pressable style={styles.closeBtn} onPress={() => setShowDetail(false)} hitSlop={8}>
                   <Ionicons name="close" size={22} color={Colors.textMuted} />
                 </Pressable>
