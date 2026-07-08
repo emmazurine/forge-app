@@ -117,3 +117,22 @@ ALTER PUBLICATION supabase_realtime ADD TABLE ambassador_applications;
 -- means anyone can view the resulting image URL, which is fine for profile
 -- pictures (same as any public avatar on the web).
 -- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- EDGE FUNCTION: account deletion
+--
+-- Deleting a Supabase auth user requires the service-role key, which must
+-- never ship in the client — so this runs server-side as an Edge Function,
+-- same pattern as verify-document above.
+--
+-- 1. From the project root (CLI already linked if you set up verify-document):
+--      npx supabase functions deploy delete-account
+--
+-- No extra secrets to set — Edge Functions get SUPABASE_URL,
+-- SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY injected automatically.
+--
+-- The app calls this via supabase.functions.invoke('delete-account') from
+-- the Profile screen's "Delete Account" button. It deletes the caller's
+-- verifications/ambassador_applications rows, their avatar from Storage,
+-- and finally the auth user itself.
+-- ─────────────────────────────────────────────────────────────

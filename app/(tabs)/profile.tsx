@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Logo } from '../../src/components/ui/Logo';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -21,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { FontSize, FontWeight, Radius, Spacing } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
+import { useGuestGuard } from '../../src/hooks/useGuestGuard';
 import { useVerification } from '../../src/hooks/useVerification';
 import { isSupabaseConfigured, supabase } from '../../src/lib/supabase';
 import { useBookmarksStore } from '../../src/store/bookmarks';
@@ -393,6 +395,10 @@ function createStyles(C: ColorPalette) {
     },
     accountBtnPressed: { opacity: 0.7 },
     accountBtnText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: C.text },
+    deleteAccountRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs,
+      marginTop: Spacing.md, paddingVertical: Spacing.sm,
+    },
     // Reset
     resetSection: { marginTop: Spacing.xxl, marginHorizontal: Spacing.lg },
     resetBtn: {
@@ -585,6 +591,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const ambassadorStatus = useAmbassadorStore((s) => s.status);
   const authUser = useAuthStore((s) => s.user);
+  const guard = useGuestGuard();
 
   const { projectUpdates, addProjectUpdate } = useProfileStore();
   const [updateInput, setUpdateInput] = useState('');
@@ -599,6 +606,7 @@ export default function ProfileScreen() {
   const [justSaved, setJustSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Sync when Zustand hydrates from AsyncStorage after first render
   const savedProfile = useProfileStore((s) => s.saved);
@@ -627,13 +635,50 @@ export default function ProfileScreen() {
 
   const cancel = () => { setProfile({ ...committed.current }); setEditing(false); setNewInterest(''); setNewSkill(''); };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account, verification status, and ambassador application. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAccount(true);
+            const { error: fnError } = await supabase.functions.invoke('delete-account', {
+              body: { onboardingUserId: useOnboardingStore.getState().userId },
+            });
+            setDeletingAccount(false);
+            if (fnError) {
+              Alert.alert('Could not delete account', fnError.message);
+              return;
+            }
+            useProfileStore.getState().resetProfile();
+            useOnboardingStore.getState().resetOnboarding();
+            await useAuthStore.getState().signOut();
+            router.replace('/');
+          },
+        },
+      ]
+    );
+  };
+
   const applyAvatarUrl = (avatarUrl: string) => {
     setProfile((p) => ({ ...p, avatarUrl }));
     committed.current = { ...committed.current, avatarUrl };
     useProfileStore.getState().saveProfile({ ...committed.current, avatarUrl });
   };
 
-  const pickAvatar = async () => {
+  const pickAvatar = () => {
+    if (!authUser) {
+      guard('save your profile photo across devices', () => runPickAvatar());
+      return;
+    }
+    runPickAvatar();
+  };
+
+  const runPickAvatar = async () => {
     setAvatarError(null);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -1172,6 +1217,22 @@ export default function ProfileScreen() {
                   </Pressable>
                 )}
               </View>
+              {authUser && (
+                <Pressable
+                  style={({ pressed }) => [styles.deleteAccountRow, pressed && styles.accountBtnPressed]}
+                  onPress={handleDeleteAccount}
+                  disabled={deletingAccount}
+                >
+                  {deletingAccount ? (
+                    <ActivityIndicator size="small" color={Colors.red} />
+                  ) : (
+                    <Ionicons name="trash-outline" size={14} color={Colors.red} />
+                  )}
+                  <Text style={[styles.accountBtnText, { color: Colors.red }]}>
+                    {deletingAccount ? 'Deleting…' : 'Delete Account'}
+                  </Text>
+                </Pressable>
+              )}
             </Section>
           )}
 

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { ConnectModal } from '../src/components/connect/ConnectModal';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { GuestGuardModal } from '../src/components/guest/GuestGuardModal';
 import { DarkColors, LightColors } from '../src/constants/themes';
 import { notifyLocal } from '../src/lib/notifications';
@@ -140,7 +141,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <ConnectModal />
       <GuestGuardModal />
@@ -235,7 +236,11 @@ export default function RootLayout() {
           name="login"
           options={{ presentation: 'modal' }}
         />
+        <Stack.Screen
+          name="reset-password"
+          options={{ presentation: 'modal' }}
+        />
       </Stack>
-    </>
+    </ErrorBoundary>
   );
 }

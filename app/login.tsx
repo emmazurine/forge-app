@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
@@ -16,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontSize, FontWeight, Radius, Spacing } from '../src/constants/theme';
 import { ColorPalette } from '../src/constants/themes';
 import { useColors } from '../src/hooks/useColors';
-import { isSupabaseConfigured } from '../src/lib/supabase';
+import { isSupabaseConfigured, supabase } from '../src/lib/supabase';
 import { useAuthStore } from '../src/store/auth';
 
 type Mode = 'signIn' | 'signUp';
@@ -33,6 +34,8 @@ function createStyles(C: ColorPalette) {
     fieldLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: C.textMuted, letterSpacing: 0.8 },
     input: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md + 2, color: C.text, fontSize: FontSize.md },
     errorText: { fontSize: FontSize.xs, color: C.red },
+    forgotLink: { alignSelf: 'flex-end', marginTop: -Spacing.sm },
+    forgotLinkText: { fontSize: FontSize.xs, color: C.accent, fontWeight: FontWeight.semibold },
     infoCard: {
       flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md,
       backgroundColor: C.greenSoft, borderRadius: Radius.lg, padding: Spacing.lg,
@@ -65,6 +68,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const canSubmit = email.trim().length > 3 && password.length >= 6 && !loading;
 
@@ -91,7 +97,28 @@ export default function LoginScreen() {
   const switchMode = () => {
     clearError();
     setConfirmationSent(false);
+    setResetSent(false);
+    setResetError(null);
     setMode((m) => (m === 'signIn' ? 'signUp' : 'signIn'));
+  };
+
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim();
+    if (trimmed.length < 4) {
+      setResetError('Enter your email above first.');
+      return;
+    }
+    setResetError(null);
+    setResetSending(true);
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: Linking.createURL('reset-password'),
+    });
+    setResetSending(false);
+    if (resetErr) {
+      setResetError(resetErr.message);
+      return;
+    }
+    setResetSent(true);
   };
 
   return (
@@ -119,6 +146,13 @@ export default function LoginScreen() {
               <Ionicons name="mail-outline" size={20} color={Colors.green} />
               <Text style={styles.infoText}>
                 We sent a confirmation link to {email.trim()}. Click it, then come back and log in.
+              </Text>
+            </View>
+          ) : resetSent ? (
+            <View style={styles.infoCard}>
+              <Ionicons name="mail-outline" size={20} color={Colors.green} />
+              <Text style={styles.infoText}>
+                We sent a password reset link to {email.trim()}. Open it to choose a new password.
               </Text>
             </View>
           ) : (
@@ -169,6 +203,13 @@ export default function LoginScreen() {
                 </View>
               </View>
 
+              {mode === 'signIn' && (
+                <Pressable style={styles.forgotLink} onPress={handleForgotPassword} disabled={resetSending}>
+                  <Text style={styles.forgotLinkText}>{resetSending ? 'Sending…' : 'Forgot password?'}</Text>
+                </Pressable>
+              )}
+
+              {resetError ? <Text style={styles.errorText}>{resetError}</Text> : null}
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <Pressable

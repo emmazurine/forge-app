@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { ForgeEvent } from '../types/event';
 
 const REMINDER_LEAD_MS = 60 * 60 * 1000; // 1 hour before
@@ -17,6 +18,7 @@ function parseEventStart(event: ForgeEvent): Date | null {
 }
 
 export async function scheduleEventReminder(event: ForgeEvent): Promise<string | null> {
+  if (Platform.OS === 'web') return null; // local scheduling isn't supported on web
   const start = parseEventStart(event);
   if (!start) return null;
   const fireAt = new Date(start.getTime() - REMINDER_LEAD_MS);
@@ -33,5 +35,6 @@ export async function scheduleEventReminder(event: ForgeEvent): Promise<string |
 }
 
 export async function cancelEventReminder(notificationId: string): Promise<void> {
+  if (Platform.OS === 'web') return;
   await Notifications.cancelScheduledNotificationAsync(notificationId);
 }
